@@ -82,6 +82,12 @@
   font-style: italic;
 }
 
+.login-form .hello-container span.user-email {
+  font-size: 12px;
+  font-style: italic;
+  opacity: 0.8;
+}
+
 .login-form .login-form-container {
   background: #251b32;
   max-width: 550px;

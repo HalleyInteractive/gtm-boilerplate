@@ -8,76 +8,85 @@ declare global {
 }
 
 export function loadGtmScripts(): void {
-  function getCookie(name: string): string | null {
-    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-    if (match) return match[2];
-    return null;
-  }
+  let tagType: string | null = null;
+  let gtmContainerId = environment.gtmContainerId;
+  let googleTagId = environment.googleTagId;
+  let sgtmTagServingUrl = environment.sgtmTagServingUrl;
+  let cdnTagServingUrl = environment.cdnTagServingUrl;
+  let sgtmEndpointUrl = environment.sgtmEndpointUrl;
 
-  const tagType = getCookie('tag-type');
+  try {
+    tagType = localStorage.getItem('tag-type');
+    gtmContainerId = localStorage.getItem('gtm-container-id') || environment.gtmContainerId;
+    googleTagId = localStorage.getItem('google-tag-id') || environment.googleTagId;
+    sgtmTagServingUrl = localStorage.getItem('sgtm-tag-serving-url') || environment.sgtmTagServingUrl;
+    cdnTagServingUrl = localStorage.getItem('cdn-tag-serving-url') || environment.cdnTagServingUrl;
+    sgtmEndpointUrl = localStorage.getItem('sgtm-endpoint-url') || environment.sgtmEndpointUrl;
+  } catch (e) {
+    console.warn('⚠️ Google Tag / GTM tracking is running on default configuration because localStorage is disabled/inaccessible in this browser.', e);
+  }
 
   let loadGtag = false;
   let scriptDomain = 'https://www.googletagmanager.com';
-  let useFirstParty = false;
+  let enableSgtmTransport = false;
 
   switch (tagType) {
-    case 'gtm-1p-server':
+    case 'gtm-gtg-via-sgtm':
       loadGtag = false;
-      scriptDomain = environment.firstPartyUrlServer;
-      useFirstParty = true;
+      scriptDomain = sgtmTagServingUrl;
       break;
 
-    case 'gtm-1p-cdn':
+    case 'gtm-gtg-via-cdn':
       loadGtag = false;
-      scriptDomain = environment.firstPartyUrlCdn;
-      useFirstParty = true;
+      scriptDomain = cdnTagServingUrl;
       break;
 
-    case 'gtag-1p-server':
+    case 'gtag-gtg-via-sgtm':
       loadGtag = true;
-      scriptDomain = environment.firstPartyUrlServer;
-      useFirstParty = true;
+      scriptDomain = sgtmTagServingUrl;
+      enableSgtmTransport = true;
       break;
 
-    case 'gtag-1p-cdn':
+    case 'gtag-gtg-via-cdn':
       loadGtag = true;
-      scriptDomain = environment.firstPartyUrlCdn;
-      useFirstParty = true;
+      scriptDomain = cdnTagServingUrl;
+      enableSgtmTransport = true;
       break;
 
-    case 'gtag':
+    case 'gtag-default':
       loadGtag = true;
       scriptDomain = 'https://www.googletagmanager.com';
-      useFirstParty = false;
       break;
 
+    case 'gtm-default':
     default:
       loadGtag = false;
       scriptDomain = 'https://www.googletagmanager.com';
-      useFirstParty = false;
       break;
   }
-
-  console.log(`🚀 Loading ${loadGtag ? 'GTAG' : 'GTM'} [tag-type=${tagType || 'default'}] 🚀 from: ${scriptDomain} 🚀`);
 
   if (loadGtag) {
     const libScript = document.createElement('script');
     libScript.async = true;
-    libScript.src = `${scriptDomain}/gtag/js?id=${environment.gtagId}`;
+    if (scriptDomain.includes('googletagmanager.com')) {
+      libScript.src = `${scriptDomain}/gtag/js?id=${googleTagId}`;
+    } else {
+      libScript.src = `${scriptDomain}`;
+    }
     document.head.insertBefore(libScript, document.head.firstChild);
 
     const configScript = document.createElement('script');
 
     const configParams: any = {};
-    if (useFirstParty) {
-      configParams.server_container_url = environment.serverContainerUrl;
+    if (enableSgtmTransport) {
+      configParams.server_container_url = sgtmEndpointUrl;
     }
 
     const scriptContent = [
       `window.dataLayer = window.dataLayer || [];`,
       `function gtag(){dataLayer.push(arguments);}`,
       `gtag('js', new Date());`,
-      `gtag('config', '${environment.gtagId}', ${JSON.stringify(configParams)});`
+      `gtag('config', '${googleTagId}', ${JSON.stringify(configParams)});`
     ].join('\n');
 
     configScript.textContent = scriptContent;
@@ -97,10 +106,14 @@ export function loadGtmScripts(): void {
       const j = d.createElement(s) as HTMLScriptElement;
       const dl = l !== 'dataLayer' ? '&l=' + l : '';
       j.async = true;
-      j.src = `${scriptDomain}/gtm.js?id=${i}${dl}`;
+      if (scriptDomain.includes('googletagmanager.com')) {
+        j.src = `${scriptDomain}/gtm.js?id=${i}${dl}`;
+      } else {
+        j.src = `${scriptDomain}/${dl}`;
+      }
       if (f && f.parentNode) {
         f.parentNode.insertBefore(j, f);
       }
-    })(window, document, 'script', 'dataLayer', environment.gtmContainerId);
+    })(window, document, 'script', 'dataLayer', gtmContainerId);
   }
 }

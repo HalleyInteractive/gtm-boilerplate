@@ -40,6 +40,7 @@
     <div class="hello-container">
       <span class="hello">Hello <a (click)="toggleOverlay()">{{ loginService.user.name }}</a></span>
       <span class="user-id">ID: {{ loginService.user.id }}</span>
+      <span class="user-email">{{ loginService.user.email }}</span>
     </div>
     <a class="logout btn" (click)="logout()">Log out</a>
   </div>

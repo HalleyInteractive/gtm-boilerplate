@@ -28,10 +28,10 @@ export const environment = {
   // will format a number as '1,000.53'
   localCode: 'en-GB',
   // The ID of the container in Google Tag Manager, e.g. GTM-XXXXXXXX
-  gtmContainerId: 'GTM-XXXXXXXX',
-  gtagId: 'G-YYYYYYY',
-  firstPartyUrlServer: 'https://www.googletagmanager.com',
-  firstPartyUrlCdn: 'https://www.googletagmanager.com',
-  serverContainerUrl: 'https://example.com',
+  gtmContainerId: 'GTM-XXXXX',
+  googleTagId: 'G-YYYYY',
+  sgtmTagServingUrl: 'https://www.googletagmanager.com',
+  cdnTagServingUrl: 'https://www.googletagmanager.com',
+  sgtmEndpointUrl: 'https://example.com',
   //The path the scripts are loaded from. Change for loading scripts from your server instead (https://developers.google.com/tag-platform/tag-manager/server-side/dependency-serving)
 };
