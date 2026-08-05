@@ -19,9 +19,25 @@ export function loadGtmScripts(): void {
     tagType = localStorage.getItem('tag-type');
     gtmContainerId = localStorage.getItem('gtm-container-id') || environment.gtmContainerId;
     googleTagId = localStorage.getItem('google-tag-id') || environment.googleTagId;
-    sgtmTagServingUrl = localStorage.getItem('sgtm-tag-serving-url') || environment.sgtmTagServingUrl;
-    cdnTagServingUrl = localStorage.getItem('cdn-tag-serving-url') || environment.cdnTagServingUrl;
-    sgtmEndpointUrl = localStorage.getItem('sgtm-endpoint-url') || environment.sgtmEndpointUrl;
+
+    if (tagType?.startsWith('gtag')) {
+      sgtmTagServingUrl = localStorage.getItem('gtag-sgtm-tag-serving-url')
+        || localStorage.getItem('sgtm-tag-serving-url')
+        || environment.sgtmTagServingUrl;
+      cdnTagServingUrl = localStorage.getItem('gtag-cdn-tag-serving-url')
+        || localStorage.getItem('cdn-tag-serving-url')
+        || environment.cdnTagServingUrl;
+      sgtmEndpointUrl = localStorage.getItem('gtag-sgtm-endpoint-url')
+        || localStorage.getItem('sgtm-endpoint-url')
+        || environment.sgtmEndpointUrl;
+    } else {
+      sgtmTagServingUrl = localStorage.getItem('gtm-sgtm-tag-serving-url')
+        || localStorage.getItem('sgtm-tag-serving-url')
+        || environment.sgtmTagServingUrl;
+      cdnTagServingUrl = localStorage.getItem('gtm-cdn-tag-serving-url')
+        || localStorage.getItem('cdn-tag-serving-url')
+        || environment.cdnTagServingUrl;
+    }
   } catch (e) {
     console.warn('⚠️ Google Tag / GTM tracking is running on default configuration because localStorage is disabled/inaccessible in this browser.', e);
   }
