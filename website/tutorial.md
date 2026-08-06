@@ -29,6 +29,7 @@ To ensure your App Engine deployment does not fail due to Google Cloud's secure-
 
 Click the **Cloud Shell arrow button** on the top right of the code box below to automatically grant the correct administrative, storage, and registry roles:
 
+
 ```sh
 # 1. Automatically detect active project, user, and project number
 PROJECT_ID=$(gcloud config get-value project)
