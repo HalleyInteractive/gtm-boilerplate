@@ -22,9 +22,6 @@ name from the environment variable.
 export GOOGLE_CLOUD_PROJECT=<walkthrough-project-id/>
 ```
 
-
-## Configure Google Cloud Permissions
-
 ## Configure Google Cloud Permissions
 
 To ensure your App Engine deployment does not fail due to Google Cloud's secure-by-default policies, we need to quickly authorize the default service accounts.
