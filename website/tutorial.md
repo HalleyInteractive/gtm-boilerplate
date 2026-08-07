@@ -22,13 +22,11 @@ name from the environment variable.
 export GOOGLE_CLOUD_PROJECT=<walkthrough-project-id/>
 ```
 
-
 ## Configure Google Cloud Permissions
 
 To ensure your App Engine deployment does not fail due to Google Cloud's secure-by-default policies, we need to quickly authorize the default service accounts.
 
 Click the **Cloud Shell arrow button** on the top right of the code box below to automatically grant the correct administrative, storage, and registry roles:
-
 
 ```sh
 # 1. Automatically detect active project, user, and project number
@@ -39,63 +37,29 @@ PROJECT_NUM=$(gcloud projects list --filter="projectId:${PROJECT_ID}" --format="
 echo "Configuring Master IAM permissions for Project ID: ${PROJECT_ID}..."
 
 # 2. Grant Owner to your active user account
-gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
-    --member="user:${USER_EMAIL}" \
-    --role="roles/owner" \
-    --no-user-output-enabled
+gcloud projects add-iam-policy-binding "${PROJECT_ID}" --member="user:${USER_EMAIL}" --role="roles/owner" --no-user-output-enabled
 
 # 3. Grant Storage Admin to App Engine Service Account
-gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
-    --member="serviceAccount:${PROJECT_ID}@appspot.gserviceaccount.com" \
-    --role="roles/storage.admin" \
-    --no-user-output-enabled
+gcloud projects add-iam-policy-binding "${PROJECT_ID}" --member="serviceAccount:${PROJECT_ID}@appspot.gserviceaccount.com" --role="roles/storage.admin" --no-user-output-enabled
 
 # 4. Grant Artifact Registry permissions to Cloud Build
-gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
-    --member="serviceAccount:${PROJECT_NUM}@cloudbuild.gserviceaccount.com" \
-    --role="roles/artifactregistry.admin" \
-    --no-user-output-enabled
-gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
-    --member="serviceAccount:${PROJECT_NUM}@cloudbuild.gserviceaccount.com" \
-    --role="roles/artifactregistry.createOnPushWriter" \
-    --no-user-output-enabled
+gcloud projects add-iam-policy-binding "${PROJECT_ID}" --member="serviceAccount:${PROJECT_NUM}@cloudbuild.gserviceaccount.com" --role="roles/artifactregistry.admin" --no-user-output-enabled
+gcloud projects add-iam-policy-binding "${PROJECT_ID}" --member="serviceAccount:${PROJECT_NUM}@cloudbuild.gserviceaccount.com" --role="roles/artifactregistry.createOnPushWriter" --no-user-output-enabled
 
 # 5. Grant Artifact Registry permissions to Default Compute Service Account
-gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
-    --member="serviceAccount:${PROJECT_NUM}-compute@developer.gserviceaccount.com" \
-    --role="roles/artifactregistry.admin" \
-    --no-user-output-enabled
-gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
-    --member="serviceAccount:${PROJECT_NUM}-compute@developer.gserviceaccount.com" \
-    --role="roles/artifactregistry.createOnPushWriter" \
-    --no-user-output-enabled
+gcloud projects add-iam-policy-binding "${PROJECT_ID}" --member="serviceAccount:${PROJECT_NUM}-compute@developer.gserviceaccount.com" --role="roles/artifactregistry.admin" --no-user-output-enabled
+gcloud projects add-iam-policy-binding "${PROJECT_ID}" --member="serviceAccount:${PROJECT_NUM}-compute@developer.gserviceaccount.com" --role="roles/artifactregistry.createOnPushWriter" --no-user-output-enabled
 
 # 6. Grant Artifact Registry permissions to App Engine Service Account
-gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
-    --member="serviceAccount:${PROJECT_ID}@appspot.gserviceaccount.com" \
-    --role="roles/artifactregistry.admin" \
-    --no-user-output-enabled
-gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
-    --member="serviceAccount:${PROJECT_ID}@appspot.gserviceaccount.com" \
-    --role="roles/artifactregistry.createOnPushWriter" \
-    --no-user-output-enabled
+gcloud projects add-iam-policy-binding "${PROJECT_ID}" --member="serviceAccount:${PROJECT_ID}@appspot.gserviceaccount.com" --role="roles/artifactregistry.admin" --no-user-output-enabled
+gcloud projects add-iam-policy-binding "${PROJECT_ID}" --member="serviceAccount:${PROJECT_ID}@appspot.gserviceaccount.com" --role="roles/artifactregistry.createOnPushWriter" --no-user-output-enabled
 
 # 7. Grant Artifact Registry permissions to Cloud Build Service Agent
-gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
-    --member="serviceAccount:service-${PROJECT_NUM}@gcp-sa-cloudbuild.iam.gserviceaccount.com" \
-    --role="roles/artifactregistry.admin" \
-    --no-user-output-enabled
+gcloud projects add-iam-policy-binding "${PROJECT_ID}" --member="serviceAccount:service-${PROJECT_NUM}@gcp-sa-cloudbuild.iam.gserviceaccount.com" --role="roles/artifactregistry.admin" --no-user-output-enabled
 
 echo "========================================="
 echo "Permissions applied! You are ready to deploy."
 echo "========================================="
-```
-
-Once the terminal prints success, click the button below to deploy your App Engine website:
-
-```sh
-gcloud app deploy --no-cache
-```
 
 
 ## Prepare environment
