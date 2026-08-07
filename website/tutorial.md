@@ -36,7 +36,7 @@ PROJECT_ID=$(gcloud config get-value project)
 USER_EMAIL=$(gcloud config get-value account)
 PROJECT_NUM=$(gcloud projects list --filter="projectId:${PROJECT_ID}" --format="value(projectNumber)")
 
-echo "⚙️  Configuring Master IAM permissions for Project ID: ${PROJECT_ID}..."
+echo "Configuring Master IAM permissions for Project ID: ${PROJECT_ID}..."
 
 # 2. Grant Owner to your active user account
 gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
@@ -87,7 +87,7 @@ gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
     --no-user-output-enabled
 
 echo "========================================="
-echo "✅ Permissions applied! You are ready to deploy."
+echo "Permissions applied! You are ready to deploy."
 echo "========================================="
 ```
 

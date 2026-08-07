@@ -66,6 +66,7 @@
   float: left;
   padding: 8px 15px 0;
   text-align: right;
+  position: relative;
 }
 
 .login-form .hello-container span {
@@ -82,10 +83,73 @@
   font-style: italic;
 }
 
+.login-form .hello-name-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
 .login-form .hello-container span.user-email {
   font-size: 12px;
   font-style: italic;
   opacity: 0.8;
+}
+
+.login-form .dropdown-arrow {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 11px;
+  opacity: 0.7;
+  transition: transform 0.2s ease, opacity 0.2s, background-color 0.2s;
+  outline: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-form .dropdown-arrow:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+.login-form .dropdown-arrow.open {
+  transform: rotate(180deg);
+}
+
+.login-form .user-details-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 15px;
+  background: #251b32;
+  border: 1px solid #38284c;
+  padding: 10px;
+  text-align: left;
+  z-index: 10;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+  min-width: 220px;
+  border-radius: 4px;
+}
+
+.login-form .user-details-dropdown.hidden {
+  display: none;
+}
+
+.login-form .user-detail-row {
+  font-size: 11px;
+  color: #ccc;
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
+
+.login-form .user-detail-row span {
+  font-weight: bold;
+  color: #fff;
+  display: inline !important;
 }
 
 .login-form .login-form-container {

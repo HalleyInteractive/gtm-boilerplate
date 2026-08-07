@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-import {Component, OnInit} from '@angular/core';
+import {Component, OnInit, ElementRef} from '@angular/core';
 import {FormControl, FormGroup} from '@angular/forms';
 import {LoginService} from 'src/app/services/login.service';
 
@@ -27,30 +27,104 @@ import {LoginService} from 'src/app/services/login.service';
   selector: 'app-login-form',
   templateUrl: './login-form.component.html',
   styleUrl: './login-form.component.css',
+  host: {
+    '(document:click)': 'onDocumentClick($event)'
+  }
 })
 export class LoginFormComponent implements OnInit {
   showOverlay = false;
+  showDetails = false;
   userForm: FormGroup = new FormGroup({});;
 
-  constructor(public loginService: LoginService) {}
+  constructor(public loginService: LoginService, private elementRef: ElementRef) {}
 
   ngOnInit(): void {
     // Initialize form with user data (if available)
     this.userForm = new FormGroup({
       id: new FormControl(this.loginService.user.id || '1'),
-      name: new FormControl(this.loginService.user.name || 'Jane Doe'),
+      first_name: new FormControl(
+        this.loginService.user.address?.first_name || 'Jane',
+      ),
+      last_name: new FormControl(
+        this.loginService.user.address?.last_name || 'Doe',
+      ),
       email: new FormControl(
         this.loginService.user.email || 'jane.doe@example.com',
+      ),
+      phone_number: new FormControl(
+        this.loginService.user.phone_number || '+15555555555',
+      ),
+      street: new FormControl(
+        this.loginService.user.address?.street || '1600 Amphitheatre Pkwy',
+      ),
+      city: new FormControl(
+        this.loginService.user.address?.city || 'Mountain View',
+      ),
+      region: new FormControl(
+        this.loginService.user.address?.region || 'CA',
+      ),
+      postal_code: new FormControl(
+        this.loginService.user.address?.postal_code || '94043',
+      ),
+      country: new FormControl(
+        this.loginService.user.address?.country || 'US',
       ),
     });
     this.loginService.setUserInDataLayer(this.loginService.user);
   }
 
   /**
+   * Toggle the details dropdown.
+   */
+  toggleDetails(): void {
+    this.showDetails = !this.showDetails;
+  }
+
+  /**
+   * Helper to hash a value using SHA-256 in the browser.
+   */
+  private async hashValue(val: string | null | undefined): Promise<string | null> {
+    if (!val) return null;
+    const msgBuffer = new TextEncoder().encode(val.trim().toLowerCase());
+    const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  /**
    * Log the user in.
    */
-  login(): void {
-    this.loginService.logUserIn(this.userForm.value);
+  async login(): Promise<void> {
+    const formValue = this.userForm.value;
+    formValue.name = `${formValue.first_name} ${formValue.last_name}`;
+
+    // Hash email and phone
+    formValue.sha256_email_address = await this.hashValue(formValue.email);
+    formValue.sha256_phone_number = await this.hashValue(formValue.phone_number);
+
+    // Nest address properties and hash first/last name
+    formValue.address = {
+      first_name: formValue.first_name,
+      sha256_first_name: await this.hashValue(formValue.first_name),
+      last_name: formValue.last_name,
+      sha256_last_name: await this.hashValue(formValue.last_name),
+      street: formValue.street,
+      city: formValue.city,
+      region: formValue.region,
+      postal_code: formValue.postal_code,
+      country: formValue.country,
+    };
+
+    // Remove flat properties from user object root
+    delete formValue.first_name;
+    delete formValue.last_name;
+    delete formValue.street;
+    delete formValue.city;
+    delete formValue.region;
+    delete formValue.postal_code;
+    delete formValue.country;
+
+    this.loginService.logUserIn(formValue);
     this.showOverlay = false;
   }
 
@@ -66,5 +140,18 @@ export class LoginFormComponent implements OnInit {
    */
   toggleOverlay(): void {
     this.showOverlay = !this.showOverlay;
+  }
+
+  /**
+   * Close dropdown if clicked outside.
+   */
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.showDetails) {
+      return;
+    }
+    const clickedInside = this.elementRef.nativeElement.contains(event.target);
+    if (!clickedInside) {
+      this.showDetails = false;
+    }
   }
 }

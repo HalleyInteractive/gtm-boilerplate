@@ -19,8 +19,25 @@
 /**
  * Represents a logged in user.
  */
+export interface UserAddress {
+  first_name?: string | null;
+  sha256_first_name?: string | null;
+  last_name?: string | null;
+  sha256_last_name?: string | null;
+  street?: string | null;
+  city?: string | null;
+  region?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
+}
+
 export interface User {
   id: string | null;
   name: string | null;
   email: string | null;
+  sha256_email_address?: string | null;
+  phone_number?: string | null;
+  sha256_phone_number?: string | null;
+  address?: UserAddress | null;
 }
+

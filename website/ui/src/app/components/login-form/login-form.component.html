@@ -25,8 +25,12 @@
           <input type="text" formControlName="id" name="user_id" required="required">
         </div>
         <div class="form-group">
-          <label for="name">Name:</label>
-          <input type="text" formControlName="name" name="name" required="required">
+          <label for="first_name">First Name:</label>
+          <input type="text" formControlName="first_name" name="first_name" required="required">
+          </div>
+          <div class="form-group">
+            <label for="last_name">Last Name:</label>
+            <input type="text" formControlName="last_name" name="last_name" required="required">
         </div>
         <div class="form-group">
           <label for="email">Email:</label>
@@ -38,9 +42,24 @@
   </div>
   <div *ngIf="loginService.isLoggedIn">
     <div class="hello-container">
-      <span class="hello">Hello <a (click)="toggleOverlay()">{{ loginService.user.name }}</a></span>
+      <div class="hello-name-container">
+        <button class="dropdown-arrow" (click)="toggleDetails()" [class.open]="showDetails">
+          ▼
+        </button>
+        <span class="hello">Hello <a (click)="toggleOverlay()">{{ loginService.user.name }}</a></span>
+      </div>
       <span class="user-id">ID: {{ loginService.user.id }}</span>
-      <span class="user-email">{{ loginService.user.email }}</span>
+      <div class="user-details-dropdown" [class.hidden]="!showDetails">
+        <div class="user-detail-row">Email: <span class="upd-email">{{ loginService.user.email }}</span></div>
+        <div class="user-detail-row">Phone: <span class="upd-phone-number">{{ loginService.user.phone_number }}</span></div>
+        <div class="user-detail-row">First Name: <span class="upd-first-name">{{ loginService.user.address?.first_name }}</span></div>
+        <div class="user-detail-row">Last Name: <span class="upd-last-name">{{ loginService.user.address?.last_name }}</span></div>
+        <div class="user-detail-row">Street: <span class="upd-street">{{ loginService.user.address?.street }}</span></div>
+        <div class="user-detail-row">City: <span class="upd-city">{{ loginService.user.address?.city }}</span></div>
+        <div class="user-detail-row">Region: <span class="upd-region">{{ loginService.user.address?.region }}</span></div>
+        <div class="user-detail-row">Postal Code: <span class="upd-postal-code">{{ loginService.user.address?.postal_code }}</span></div>
+        <div class="user-detail-row">Country: <span class="upd-country">{{ loginService.user.address?.country }}</span></div>
+      </div>
     </div>
     <a class="logout btn" (click)="logout()">Log out</a>
   </div>

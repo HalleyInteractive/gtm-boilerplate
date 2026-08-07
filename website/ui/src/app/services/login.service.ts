@@ -37,6 +37,39 @@ export class LoginService {
     id: null,
     name: null,
     email: null,
+    sha256_email_address: null,
+    phone_number: null,
+    sha256_phone_number: null,
+    address: {
+      first_name: null,
+      sha256_first_name: null,
+      last_name: null,
+      sha256_last_name: null,
+      street: null,
+      city: null,
+      region: null,
+      postal_code: null,
+      country: null,
+    }
+  };
+  private defaultUser: User = {
+    id: '1',
+    name: 'Jane Doe',
+    email: 'jane.doe@example.com',
+    sha256_email_address: '86e0b9e56c17cc4d12387e1949b85053fbe73bc3ce5a1188713a9d300cc6133d',
+    phone_number: '+15555555555',
+    sha256_phone_number: '910a625c4ba147b544e6bd2f267e130ae14c591b6ba9c25cb8573322dedbebd0',
+    address: {
+      first_name: 'Jane',
+      sha256_first_name: '81f8f6dde88365f3928796ec7aa53f72820b06db8664f5fe76a7eb13e24546a2',
+      last_name: 'Doe',
+      sha256_last_name: '799ef92a11af918e3fb741df42934f3b568ed2d93ac1df74f1b8d41a27932a6f',
+      street: '1600 Amphitheatre Pkwy',
+      city: 'Mountain View',
+      region: 'CA',
+      postal_code: '94043',
+      country: 'US',
+    }
   };
   // The datalayer is set in index.html so it is always present.
   // Using any as the content of the datalayer is externally managed by GTM.
@@ -118,8 +151,31 @@ export class LoginService {
       return this.nullUser;
     } else {
       const user: User = JSON.parse(loginCookie);
+      
+      // Clean up legacy flat address fields from old cookies
+      const legacyUser = { ...user } as any;
+      delete legacyUser.first_name;
+      delete legacyUser.last_name;
+      delete legacyUser.street;
+      delete legacyUser.city;
+      delete legacyUser.region;
+      delete legacyUser.postal_code;
+      delete legacyUser.country;
+
+      // Discard legacy formatted phone numbers and their incorrect hashes
+      if (
+        legacyUser.phone_number &&
+        (legacyUser.phone_number.includes(' ') || legacyUser.phone_number.includes('-'))
+      ) {
+        delete legacyUser.phone_number;
+        delete legacyUser.sha256_phone_number;
+      }
+      
       this.isLoggedIn = true;
-      return user;
+      return {
+        ...this.defaultUser,
+        ...legacyUser
+      };
     }
   }
 }
