@@ -14,10 +14,11 @@ fi
 echo "🚀 Configuring Master IAM permissions for Project ID: ${PROJECT_ID}..."
 
 # 2. Enable Google Cloud APIs automatically
-echo "⚙️ Enabling Google Cloud APIs (Cloud Build & App Engine)..."
+echo "⚙️ Enabling Google Cloud APIs (Cloud Build, App Engine & Artifact Registry)..."
 gcloud services enable \
   cloudbuild.googleapis.com \
   appengine.googleapis.com \
+  artifactregistry.googleapis.com \
   --project="${PROJECT_ID}"
 
 # 3. Grant Owner & App Engine Admin to your active user account FIRST
