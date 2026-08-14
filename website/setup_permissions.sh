@@ -69,10 +69,12 @@ echo "🔑 Assigning Artifact Registry permissions to Cloud Build..."
 gcloud projects add-iam-policy-binding "${PROJECT_ID}" --member="serviceAccount:${PROJECT_NUM}@cloudbuild.gserviceaccount.com" --role="roles/artifactregistry.admin" --no-user-output-enabled
 gcloud projects add-iam-policy-binding "${PROJECT_ID}" --member="serviceAccount:${PROJECT_NUM}@cloudbuild.gserviceaccount.com" --role="roles/artifactregistry.createOnPushWriter" --no-user-output-enabled
 
-# 9. Grant Artifact Registry permissions to Default Compute Service Account
-echo "🔑 Assigning Artifact Registry permissions to Default Compute Service Account..."
-gcloud projects add-iam-policy-binding "${PROJECT_ID}" --member="serviceAccount:${PROJECT_NUM}-compute@developer.gserviceaccount.com" --role="roles/artifactregistry.admin" --no-user-output-enabled
-gcloud projects add-iam-policy-binding "${PROJECT_ID}" --member="serviceAccount:${PROJECT_NUM}-compute@developer.gserviceaccount.com" --role="roles/artifactregistry.createOnPushWriter" --no-user-output-enabled
+# 9. Grant Artifact Registry permissions to Default Compute Service Account (if present)
+if gcloud iam service-accounts describe "${PROJECT_NUM}-compute@developer.gserviceaccount.com" --project="${PROJECT_ID}" >/dev/null 2>&1; then
+  echo "🔑 Assigning Artifact Registry permissions to Default Compute Service Account..."
+  gcloud projects add-iam-policy-binding "${PROJECT_ID}" --member="serviceAccount:${PROJECT_NUM}-compute@developer.gserviceaccount.com" --role="roles/artifactregistry.admin" --no-user-output-enabled
+  gcloud projects add-iam-policy-binding "${PROJECT_ID}" --member="serviceAccount:${PROJECT_NUM}-compute@developer.gserviceaccount.com" --role="roles/artifactregistry.createOnPushWriter" --no-user-output-enabled
+fi
 
 # 10. Grant Artifact Registry permissions to App Engine Service Account
 echo "🔑 Assigning Artifact Registry permissions to App Engine Service Account..."
