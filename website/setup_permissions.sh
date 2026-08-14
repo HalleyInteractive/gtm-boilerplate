@@ -20,10 +20,29 @@ gcloud services enable \
   appengine.googleapis.com \
   --project="${PROJECT_ID}"
 
-# 3. Check and initialize App Engine (required to provision the appspot service account)
+# 3. Check and initialize App Engine
 if ! gcloud app describe --project="${PROJECT_ID}" >/dev/null 2>&1; then
-  echo "📦 Initializing App Engine in 'europe-west3' (Frankfurt)..."
-  gcloud app create --region="europe-west3" --project="${PROJECT_ID}"
+  echo "🌐 App Engine is not initialized yet."
+  echo "Select a Google Cloud region to initialize App Engine (this cannot be changed later):"
+  echo "1) europe-west3 (Frankfurt) [Default]"
+  echo "2) us-central1 (Iowa)"
+  echo "3) us-east1 (South Carolina)"
+  echo "4) asia-east1 (Taiwan)"
+  echo "5) Enter a custom region"
+  read -p "Choose an option (1-5, default is 1): " REGION_CHOICE
+
+  case $REGION_CHOICE in
+    2) REGION="us-central1" ;;
+    3) REGION="us-east1" ;;
+    4) REGION="asia-east1" ;;
+    5) 
+      read -p "Enter custom GCP region: " REGION
+      ;;
+    *) REGION="europe-west3" ;;
+  esac
+
+  echo "📦 Initializing App Engine in '${REGION}'..."
+  gcloud app create --region="${REGION}" --project="${PROJECT_ID}"
 else
   echo "✅ App Engine is already initialized."
 fi
