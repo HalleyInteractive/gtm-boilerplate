@@ -20,7 +20,12 @@ gcloud services enable \
   appengine.googleapis.com \
   --project="${PROJECT_ID}"
 
-# 3. Check and initialize App Engine
+# 3. Grant Owner & App Engine Admin to your active user account FIRST
+echo "🔑 Assigning Owner and App Engine Admin roles to ${USER_EMAIL}..."
+gcloud projects add-iam-policy-binding "${PROJECT_ID}" --member="user:${USER_EMAIL}" --role="roles/owner" --no-user-output-enabled
+gcloud projects add-iam-policy-binding "${PROJECT_ID}" --member="user:${USER_EMAIL}" --role="roles/appengine.appAdmin" --no-user-output-enabled
+
+# 4. Check and initialize App Engine
 if ! gcloud app describe --project="${PROJECT_ID}" >/dev/null 2>&1; then
   echo "🌐 App Engine is not initialized yet."
   echo "Select a Google Cloud region to initialize App Engine (this cannot be changed later):"
@@ -47,16 +52,12 @@ else
   echo "✅ App Engine is already initialized."
 fi
 
-# 4. Wait briefly for newly created Service Accounts to propagate
+# 5. Wait briefly for newly created Service Accounts to propagate
 echo "⏳ Waiting 10 seconds for backend service accounts to propagate..."
 sleep 10
 
-# 5. Fetch project number now that APIs are fully active
+# 6. Fetch project number now that APIs are fully active
 PROJECT_NUM=$(gcloud projects list --filter="projectId:${PROJECT_ID}" --format="value(projectNumber)")
-
-# 6. Grant Owner to your active user account
-echo "🔑 Assigning Owner role to ${USER_EMAIL}..."
-gcloud projects add-iam-policy-binding "${PROJECT_ID}" --member="user:${USER_EMAIL}" --role="roles/owner" --no-user-output-enabled
 
 # 7. Grant Storage Admin to App Engine Service Account
 echo "🔑 Assigning Storage Admin to App Engine Service Account..."
