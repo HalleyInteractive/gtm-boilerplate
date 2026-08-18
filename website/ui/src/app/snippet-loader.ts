@@ -12,7 +12,7 @@ export function loadGtmScripts(): void {
   let gtmContainerId = environment.gtmContainerId;
   let googleTagId = environment.googleTagId;
   let sgtmTagServingUrl = environment.sgtmTagServingUrl;
-  let cdnTagServingUrl = environment.cdnTagServingUrl;
+  let cdnTagServingUrl = 'https://www.googletagmanager.com';
   let sgtmEndpointUrl = environment.sgtmEndpointUrl;
 
   try {
@@ -26,7 +26,7 @@ export function loadGtmScripts(): void {
         || environment.sgtmTagServingUrl;
       cdnTagServingUrl = localStorage.getItem('gtag-cdn-tag-serving-url')
         || localStorage.getItem('cdn-tag-serving-url')
-        || environment.cdnTagServingUrl;
+        || 'https://www.googletagmanager.com';
       sgtmEndpointUrl = localStorage.getItem('gtag-sgtm-endpoint-url')
         || localStorage.getItem('sgtm-endpoint-url')
         || environment.sgtmEndpointUrl;
@@ -36,7 +36,7 @@ export function loadGtmScripts(): void {
         || environment.sgtmTagServingUrl;
       cdnTagServingUrl = localStorage.getItem('gtm-cdn-tag-serving-url')
         || localStorage.getItem('cdn-tag-serving-url')
-        || environment.cdnTagServingUrl;
+        || 'https://www.googletagmanager.com';
     }
   } catch (e) {
     console.warn('⚠️ Google Tag / GTM tracking is running on default configuration because localStorage is disabled/inaccessible in this browser.', e);

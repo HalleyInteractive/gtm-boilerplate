@@ -91,13 +91,13 @@ export class TagSettingsComponent implements OnInit {
     let gtmEnableGtg = false;
     let gtmGtgType = 'server';
     let gtmSgtmTagServingUrl = environment.sgtmTagServingUrl;
-    let gtmCdnTagServingUrl = environment.cdnTagServingUrl;
+    let gtmCdnTagServingUrl = 'https://www.googletagmanager.com';
 
     // Gtag:
     let gtagEnableGtg = false;
     let gtagGtgType = 'server';
     let gtagSgtmTagServingUrl = environment.sgtmTagServingUrl;
-    let gtagCdnTagServingUrl = environment.cdnTagServingUrl;
+    let gtagCdnTagServingUrl = 'https://www.googletagmanager.com';
     let gtagSgtmEndpointUrl = environment.sgtmEndpointUrl;
 
     if (this.isLocalStorageEnabled) {
@@ -130,7 +130,7 @@ export class TagSettingsComponent implements OnInit {
 
         gtmCdnTagServingUrl = localStorage.getItem('gtm-cdn-tag-serving-url')
           || (storedTagType.startsWith('gtm') ? localStorage.getItem('cdn-tag-serving-url') : null)
-          || environment.cdnTagServingUrl;
+          || 'https://www.googletagmanager.com';
 
         let prevGtagEnableGtg = false;
         let prevGtagGtgType = 'server';
@@ -152,7 +152,7 @@ export class TagSettingsComponent implements OnInit {
 
         gtagCdnTagServingUrl = localStorage.getItem('gtag-cdn-tag-serving-url')
           || (storedTagType.startsWith('gtag') ? localStorage.getItem('cdn-tag-serving-url') : null)
-          || environment.cdnTagServingUrl;
+          || 'https://www.googletagmanager.com';
 
         gtagSgtmEndpointUrl = localStorage.getItem('gtag-sgtm-endpoint-url')
           || localStorage.getItem('sgtm-endpoint-url')

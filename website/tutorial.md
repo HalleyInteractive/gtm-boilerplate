@@ -52,7 +52,6 @@ localCode            | This is used to determine the pricing number format.
 gtmContainerId       | Paste your GTM Web Container ID here (formatted as GTM-XXXXXX)
 googleTagId          | Paste your GA Measurement ID
 sgtmTagServingUrl    | Paste your URL for first-party script serving via sGTM
-cdnTagServingUrl     | Paste your URL for first-party script serving via CDN
 sgtmEndpointUrl      | Paste your sGTM endpoint URL
 
 After that, let's get the deployment started.
