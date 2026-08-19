@@ -36,7 +36,7 @@ describe('BasketPageComponent', () => {
     ]);
     mockEcommerceEventsService = jasmine.createSpyObj(
       'EcommerceEventsService',
-      ['sendViewCartEvent', 'sendAddToCartEvent', 'sendRemoveFromCartEvent']
+      ['sendBeginCheckoutEvent', 'sendAddToCartEvent', 'sendRemoveFromCartEvent']
     );
     mockProductsService = jasmine.createSpyObj('ProductsService', ['products']);
 
@@ -62,8 +62,8 @@ describe('BasketPageComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  describe('sendViewCartEvent()', () => {
-    it('should send the view cart event with basket and total price', () => {
+  describe('sendBeginCheckoutEvent()', () => {
+    it('should send the begin checkout event with basket and total price', () => {
       const mockBasket = {};
       const mockTotalPrice = 100;
 
@@ -72,9 +72,9 @@ describe('BasketPageComponent', () => {
         mockTotalPrice
       );
 
-      component.sendViewCartEvent();
+      component.sendBeginCheckoutEvent();
 
-      expect(mockEcommerceEventsService.sendViewCartEvent).toHaveBeenCalledWith(
+      expect(mockEcommerceEventsService.sendBeginCheckoutEvent).toHaveBeenCalledWith(
         mockBasket,
         mockTotalPrice
       );
@@ -83,10 +83,10 @@ describe('BasketPageComponent', () => {
     it('should not send the event if the basket is empty', () => {
       mockBasketService.getBasket.and.returnValue(undefined);
 
-      component.sendViewCartEvent();
+      component.sendBeginCheckoutEvent();
 
       expect(
-        mockEcommerceEventsService.sendViewCartEvent
+        mockEcommerceEventsService.sendBeginCheckoutEvent
       ).not.toHaveBeenCalled();
     });
   });

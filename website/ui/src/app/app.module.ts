@@ -17,7 +17,6 @@
 import {NgModule} from '@angular/core';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {BrowserModule} from '@angular/platform-browser';
-import {GoogleTagManagerModule} from 'angular-google-tag-manager';
 
 import {environment} from 'src/environments/environment';
 import {AppRoutingModule} from './app-routing.module';
@@ -25,6 +24,7 @@ import {AppComponent} from './app.component';
 import {BasketPageComponent} from './components/basket-page/basket-page.component';
 import {ConfirmationPageComponent} from './components/confirmation-page/confirmation-page.component';
 import {CookieBannerComponent} from './components/cookie-banner/cookie-banner.component';
+import {TagSettingsComponent} from './components/tag-settings/tag-settings.component';
 import {EventStreamComponent} from './components/event-stream/event-stream.component';
 import {HomePageComponent} from './components/home-page/home-page.component';
 import {LoginFormComponent} from './components/login-form/login-form.component';
@@ -44,6 +44,7 @@ import {TopBarComponent} from './components/top-bar/top-bar.component';
     BasketPageComponent,
     ConfirmationPageComponent,
     CookieBannerComponent,
+    TagSettingsComponent,
     LoginFormComponent,
     EventStreamComponent,
   ],
@@ -52,10 +53,6 @@ import {TopBarComponent} from './components/top-bar/top-bar.component';
     AppRoutingModule,
     FormsModule,
     ReactiveFormsModule,
-    GoogleTagManagerModule.forRoot({
-      id: environment.gtmContainerId,
-      gtm_resource_path: environment.gtmResourcePath,
-    }),
   ],
   providers: [],
   bootstrap: [AppComponent],

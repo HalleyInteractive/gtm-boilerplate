@@ -16,11 +16,11 @@
  * limitations under the License.
  */
 
-import {DOCUMENT} from '@angular/common';
-import {Inject, Injectable, Optional} from '@angular/core';
-import {CookieService} from 'ngx-cookie-service';
-import {BehaviorSubject} from 'rxjs';
-import {Consent, ConsentStatus, ConsentUpdate} from '../models/consent';
+import { DOCUMENT } from '@angular/common';
+import { Inject, Injectable, Optional } from '@angular/core';
+import { CookieService } from 'ngx-cookie-service';
+import { BehaviorSubject } from 'rxjs';
+import { Consent, ConsentStatus, ConsentUpdate } from '../models/consent';
 
 /**
  * A service for managing the user's consent with GTM.
@@ -39,9 +39,7 @@ export class ConsentService {
   private cookieName = 'consent-cookie';
   private cookieExpiryDays = 365;
 
-  // The gtag is hard coded in the index.html, so it should always be present
   gtag!: Function;
-  // Need to send the consent signal first, so this allows others to subscribe
   isInitialized = new BehaviorSubject<boolean>(false);
   hasConsentCookie = false;
 
@@ -64,11 +62,7 @@ export class ConsentService {
     } else {
       this.gtag = this.injectedGtag;
     }
-    this.updateGtagConsent(ConsentUpdate.DEFAULT);
     this.getConsentFromCookie();
-    if (this.hasConsentCookie === true) {
-      this.updateGtagConsent(ConsentUpdate.UPDATE);
-    }
     this.isInitialized.next(true);
   }
 
@@ -100,11 +94,12 @@ export class ConsentService {
   }
 
   /**
-   * Update the consent settings in Google Tag Manager.
-   * @param consentUpdate: the type of consent update to apply, e.g. default
-   */
+  * Update the consent settings in Google Tag Manager.
+  * @param consentUpdate: the type of consent update to apply, e.g. default
+  */
   private updateGtagConsent(consentUpdate: ConsentUpdate): void {
-    if (this.gtag() === undefined) {
+    // FIX: Check if this.gtag is defined (truthy), DO NOT call it with ()
+    if (this.gtag) {
       this.gtag('consent', consentUpdate, this.currentConsent);
     } else {
       console.error('gtag has not been assigned.');
@@ -126,9 +121,6 @@ export class ConsentService {
     }
   }
 
-  /**
-   * Store the consent of the user in a cookie.
-   */
   private setConsentCookie(): void {
     const expiryDate = new Date();
     expiryDate.setTime(
@@ -141,3 +133,5 @@ export class ConsentService {
     );
   }
 }
+
+

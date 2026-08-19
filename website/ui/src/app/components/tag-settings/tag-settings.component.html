@@ -1,0 +1,228 @@
+<!--
+ Copyright 2026 Google LLC
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ you may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<div id="settings-banner-overlay" [class.show-banner]="showOverlay">
+  <div class="settings-banner-container">
+    <div class="settings-banner-text">
+      <h1>Google Tag Gateway Settings</h1>
+      <div class="text-center mb-3">
+        <a class="how-it-works-link" href="javascript:void(0)"
+          data-tooltip="This panel lets you adjust GTM/Gtag configurations to test different Google Tag Gateway (GTG) proxy setups on the website.&#10;&#10;Settings are stored in your browser's localStorage. If localStorage is disabled or blocked, settings cannot be saved and tracking will run on standard environment defaults.">How this works?</a>
+      </div>
+      <form id="settings-config-form" [formGroup]="settingsForm" (ngSubmit)="saveSettings()">
+
+        @if (!isLocalStorageEnabled) {
+        <div class="alert alert-danger py-2 px-3 mb-3 text-start bg-dark border-danger text-danger">
+          <small>⚠️ <strong>Local storage is disabled or blocked.</strong> Settings cannot be saved and tracking will
+            run on environment defaults.</small>
+        </div>
+        }
+
+        <!-- Library Selection -->
+        <div class="form-group mb-3 text-start">
+          <label class="form-label d-block">Tagging Approach</label>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" id="libGtm" value="gtm" formControlName="library">
+            <label class="form-check-label" for="libGtm">Google Tag Manager</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" id="libGtag" value="gtag" formControlName="library">
+            <label class="form-check-label" for="libGtag">Google Tag</label>
+          </div>
+        </div>
+
+        <!-- GTM settings block -->
+        @if (settingsForm.get('library')?.value === 'gtm') {
+          <div class="form-group mb-3 text-start">
+            <label for="gtmContainerId" class="form-label">GTM Web Container ID</label>
+            <input type="text" id="gtmContainerId" class="form-control bg-dark text-white border-secondary"
+              formControlName="gtmContainerId" placeholder="e.g. GTM-XXXXXX">
+          </div>
+
+          <!-- GTM GTG Toggle -->
+          <div class="form-group mb-3 text-start border-top pt-3">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="gtmEnableGtg" formControlName="gtmEnableGtg">
+              <label class="form-check-label form-label" for="gtmEnableGtg">Enable Google Tag Gateway (GTG)</label>
+            </div>
+          </div>
+
+          <!-- GTM GTG Parameters -->
+          @if (settingsForm.get('gtmEnableGtg')?.value) {
+            <div class="form-group mb-3 text-start">
+              <label class="form-label d-block">GTG Implementation Type</label>
+              <div class="form-check d-flex align-items-center">
+                <input class="form-check-input" type="radio" id="gtmGtgServer" value="server" formControlName="gtmGtgType">
+                <label class="form-check-label ms-2" for="gtmGtgServer">via sGTM</label>
+                <span class="info-icon ms-2"
+                  data-tooltip="Loads script dependencies from sGTM.&#10;&#10;If you also want to send collected website events to the sGTM endpoint, configure server_container_url inside the client side GTM UI.">ⓘ</span>
+              </div>
+              <div class="form-check d-flex align-items-center">
+                <input class="form-check-input" type="radio" id="gtmGtgCdn" value="cdn" formControlName="gtmGtgType">
+                <label class="form-check-label ms-2" for="gtmGtgCdn">via CDN (script injecting)</label>
+                <span class="info-icon ms-2"
+                  data-tooltip="Loads script dependencies from a custom CDN URL.&#10;&#10;Useful if you have set up GTG manually via CDN or Load Balancer. Use this option if you need to manually adjust the script loading URL.">ⓘ</span>
+              </div>
+              <div class="form-check d-flex align-items-center">
+                <input class="form-check-input" type="radio" id="gtmGtgCdn1click" value="cdn-1click" formControlName="gtmGtgType">
+                <label class="form-check-label ms-2" for="gtmGtgCdn1click">via CDN (in UI)</label>
+                <span class="info-icon ms-2"
+                  data-tooltip="Uses CDN provider configurations (like Cloudflare) to automatically inject scripts with updated GTG paths. No code changes are required on this website.">ⓘ</span>
+              </div>
+            </div>
+
+            <div class="gtg-options p-3 mb-3 border rounded border-secondary bg-dark-purple">
+              <!-- Server-side Proxy Fields -->
+              @if (settingsForm.get('gtmGtgType')?.value === 'server') {
+              <div class="form-group mb-3 text-start">
+                <label for="gtmSgtmTagServingUrl" class="form-label">sGTM Tag Serving URL</label>
+                <input type="text" id="gtmSgtmTagServingUrl" class="form-control bg-dark text-white border-secondary"
+                  formControlName="gtmSgtmTagServingUrl" placeholder="e.g. https://www.googletagmanager.com">
+                <small class="text-muted">Domain path serving the gtm.js dependency.</small>
+              </div>
+              }
+
+              <!-- CDN Proxy Fields -->
+              @if (settingsForm.get('gtmGtgType')?.value === 'cdn') {
+              <div class="form-group mb-3 text-start">
+                <label for="gtmCdnTagServingUrl" class="form-label">CDN Tag serving URL</label>
+                <input type="text" id="gtmCdnTagServingUrl" class="form-control bg-dark text-white border-secondary"
+                  formControlName="gtmCdnTagServingUrl" placeholder="e.g. https://www.googletagmanager.com">
+                <small class="text-muted">Update this URL, only if you are implementing GTG via CDN manually.</small>
+              </div>
+              }
+
+              <!-- CDN 1-click info message -->
+              @if (settingsForm.get('gtmGtgType')?.value === 'cdn-1click') {
+              <div class="alert alert-info py-2 px-3 mb-3 text-start bg-dark border-info text-info">
+                <small>Certain CDN providers (like Cloudflare) support In-UI GTG implementation where CDN injects the
+                  script with updated GTG path. You don't need to adjust the existing script on the website. Enable In-UI
+                  integration in CDN provider settings.</small>
+              </div>
+              }
+            </div>
+          }
+        }
+
+        <!-- Gtag settings block -->
+        @if (settingsForm.get('library')?.value === 'gtag') {
+          <div class="form-group mb-3 text-start">
+            <label for="googleTagId" class="form-label">Gtag Measurement ID</label>
+            <input type="text" id="googleTagId" class="form-control bg-dark text-white border-secondary"
+              formControlName="googleTagId" placeholder="e.g. G-YYYYYYY">
+          </div>
+
+          <!-- Gtag GTG Toggle -->
+          <div class="form-group mb-3 text-start border-top pt-3">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="gtagEnableGtg" formControlName="gtagEnableGtg">
+              <label class="form-check-label form-label" for="gtagEnableGtg">Enable Google Tag Gateway (GTG)</label>
+            </div>
+          </div>
+
+          <!-- Gtag GTG Parameters -->
+          @if (settingsForm.get('gtagEnableGtg')?.value) {
+            <div class="form-group mb-3 text-start">
+              <label class="form-label d-block">GTG Implementation Type</label>
+              <div class="form-check d-flex align-items-center">
+                <input class="form-check-input" type="radio" id="gtagGtgServer" value="server" formControlName="gtagGtgType">
+                <label class="form-check-label ms-2" for="gtagGtgServer">via sGTM</label>
+                <span class="info-icon ms-2"
+                  data-tooltip="Loads script dependencies from sGTM.&#10;&#10;If you also want to send collected website events to the sGTM endpoint, add sGTM endpoint into sGTM Server Container URL field.">ⓘ</span>
+              </div>
+              <div class="form-check d-flex align-items-center">
+                <input class="form-check-input" type="radio" id="gtagGtgCdn" value="cdn" formControlName="gtagGtgType">
+                <label class="form-check-label ms-2" for="gtagGtgCdn">via CDN (script injecting)</label>
+                <span class="info-icon ms-2"
+                  data-tooltip="Loads script dependencies from a custom CDN URL. Useful if you have set up GTG manually via CDN or Load Balancer. Use this option if you need to manually adjust the script loading URL.&#10;&#10;If you also want to send collected website events to the sGTM endpoint, add sGTM endpoint into sGTM Server Container URL field.">ⓘ</span>
+              </div>
+              <div class="form-check d-flex align-items-center">
+                <input class="form-check-input" type="radio" id="gtagGtgCdn1click" value="cdn-1click" formControlName="gtagGtgType">
+                <label class="form-check-label ms-2" for="gtagGtgCdn1click">via CDN (in UI)</label>
+                <span class="info-icon ms-2"
+                  data-tooltip="Uses CDN provider configurations (like Cloudflare) to automatically inject scripts with updated GTG paths. No code changes are required on this website.">ⓘ</span>
+              </div>
+            </div>
+
+            <div class="gtg-options p-3 mb-3 border rounded border-secondary bg-dark-purple">
+              <!-- Server-side Proxy Fields -->
+              @if (settingsForm.get('gtagGtgType')?.value === 'server') {
+              <div class="form-group mb-3 text-start">
+                <label for="gtagSgtmTagServingUrl" class="form-label">sGTM Tag Serving URL</label>
+                <input type="text" id="gtagSgtmTagServingUrl" class="form-control bg-dark text-white border-secondary"
+                  formControlName="gtagSgtmTagServingUrl" placeholder="e.g. https://www.googletagmanager.com">
+                <small class="text-muted">Domain path serving the gtag.js dependency.</small>
+              </div>
+              }
+
+              <!-- CDN Proxy Fields -->
+              @if (settingsForm.get('gtagGtgType')?.value === 'cdn') {
+              <div class="form-group mb-3 text-start">
+                <label for="gtagCdnTagServingUrl" class="form-label">CDN Tag serving URL</label>
+                <input type="text" id="gtagCdnTagServingUrl" class="form-control bg-dark text-white border-secondary"
+                  formControlName="gtagCdnTagServingUrl" placeholder="e.g. https://www.googletagmanager.com">
+                <small class="text-muted">Update this URL, only if you are implementing GTG via CDN manually.</small>
+              </div>
+              }
+
+              <!-- CDN 1-click info message -->
+              @if (settingsForm.get('gtagGtgType')?.value === 'cdn-1click') {
+              <div class="alert alert-info py-2 px-3 mb-3 text-start bg-dark border-info text-info">
+                <small>Certain CDN providers (like Cloudflare) support In-UI GTG implementation where CDN injects the
+                  script with updated GTG path. You don't need to adjust the existing script on the website. Enable In-UI
+                  integration in CDN provider settings.</small>
+              </div>
+              }
+
+              <!-- Server Container URL -->
+              <div class="form-group mb-3 text-start">
+                <label for="gtagSgtmEndpointUrl" class="form-label">Optional: sGTM Server Container URL</label>
+                <input type="text" id="gtagSgtmEndpointUrl" class="form-control bg-dark text-white border-secondary"
+                  formControlName="gtagSgtmEndpointUrl" placeholder="e.g. https://example.com">
+                <small class="text-muted">Target endpoint for e-commerce event telemetry collections.</small>
+              </div>
+            </div>
+          }
+        }
+
+        <div class="settings-btns text-center d-flex justify-content-between border-top pt-3">
+          <button type="submit" class="btn btn-primary bg-purple border-purple" [disabled]="!isLocalStorageEnabled">Save
+            & Reload</button>
+          <button type="button" class="btn btn-warning text-dark border-warning" (click)="resetSettings()"
+            [disabled]="!isLocalStorageEnabled">Reset to
+            Default</button>
+          <button type="button" class="btn btn-secondary border-secondary" (click)="toggleSettings()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div id="settings-badge-container" class="d-flex align-items-center gap-2"
+  [class.shifted-left]="sidebarCollapsed()" [class.shifted-right]="!sidebarCollapsed()">
+  <div id="settings-banner-icon" (click)="toggleSettings()" title="Configure Tracking Gateway Settings">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round" class="settings-svg">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path
+        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z">
+      </path>
+    </svg>
+  </div>
+  <div id="settings-current-badge" (click)="toggleSettings()" title="Current Tagging Setup">
+    {{ currentImplementationLabel }}
+  </div>
+</div>

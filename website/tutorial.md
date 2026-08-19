@@ -22,6 +22,17 @@ name from the environment variable.
 export GOOGLE_CLOUD_PROJECT=<walkthrough-project-id/>
 ```
 
+## Configure Google Cloud Permissions
+
+To ensure your App Engine deployment does not fail due to Google Cloud's secure-by-default policies, we need to quickly authorize the default service accounts.
+
+Click the **Cloud Shell arrow button** on the top right of the code box below to automatically run the permissions setup script:
+
+```sh
+bash setup_permissions.sh
+```
+
+
 ## Prepare environment
 
 Google Cloud Project: <walkthrough-project-id/>
@@ -39,6 +50,9 @@ Variable             | Description
 currency             | This is the currency used for all products and tagging/conversions
 localCode            | This is used to determine the pricing number format.
 gtmContainerId       | Paste your GTM Web Container ID here (formatted as GTM-XXXXXX)
+googleTagId          | Paste your GA Measurement ID
+sgtmTagServingUrl    | Paste your URL for first-party script serving via sGTM
+sgtmEndpointUrl      | Paste your sGTM endpoint URL
 
 After that, let's get the deployment started.
 
@@ -47,9 +61,8 @@ After that, let's get the deployment started.
 First we need to build the angular code by running:
 ```bash
 cd ui
-npm install -g @angular/cli
 npm install
-ng build
+npm run build
 cd ..
 ```
 

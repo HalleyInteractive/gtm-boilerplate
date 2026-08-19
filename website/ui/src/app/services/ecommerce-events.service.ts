@@ -20,10 +20,9 @@
  * limitations under the License.
  */
 
-import {Injectable} from '@angular/core';
-import {GoogleTagManagerService} from 'angular-google-tag-manager';
-import {js_beautify} from 'js-beautify';
-import {environment} from 'src/environments/environment';
+import { Injectable } from '@angular/core';
+import { js_beautify } from 'js-beautify';
+import { environment } from 'src/environments/environment';
 import {
   AddToCart,
   EcommerceEvent,
@@ -37,9 +36,9 @@ import {
   AddShippingInfo,
   AddPaymentInfo,
 } from '../models/ecommerce-events';
-import {Basket, Product, ProductVariant, Products} from '../models/products';
-import {ProductsService} from './products.service';
-import {isNgTemplate} from '@angular/compiler';
+import { Basket, Product, ProductVariant, Products } from '../models/products';
+import { ProductsService } from './products.service';
+import { isNgTemplate } from '@angular/compiler';
 
 /**
  * Service for sending ecommerce events to Google Tag Manager.
@@ -51,9 +50,14 @@ export class EcommerceEventsService {
   events: string[] = [];
 
   constructor(
-    private gtmService: GoogleTagManagerService,
     private productService: ProductsService
-  ) {}
+  ) { }
+
+  private pushToDataLayer(obj: any): void {
+    const w = window as any;
+    w.dataLayer = w.dataLayer || [];
+    w.dataLayer.push(obj);
+  }
 
   /**
    * For the given products return as Items in ecommerce datalayer schema.
@@ -476,9 +480,9 @@ export class EcommerceEventsService {
    * @param products the products to include.
    */
   sendViewItemListEvent(products: Products): void {
-    this.gtmService.pushTag({ecommerce: null});
+    this.pushToDataLayer({ ecommerce: null });
     const event = this.getViewItemListEvent(products);
-    this.gtmService.pushTag(event);
+    this.pushToDataLayer(event);
     this.events.unshift(this.formatEcommerceEventAsString(event));
   }
 
@@ -488,9 +492,9 @@ export class EcommerceEventsService {
    * @param productVariant The variant of the product that was selected.
    */
   sendSelectItemEvent(product: Product, productVariant: ProductVariant): void {
-    this.gtmService.pushTag({ecommerce: null});
+    this.pushToDataLayer({ ecommerce: null });
     const event = this.getSelectItemEvent(product, productVariant);
-    this.gtmService.pushTag(event);
+    this.pushToDataLayer(event);
     this.events.unshift(this.formatEcommerceEventAsString(event));
   }
 
@@ -500,9 +504,9 @@ export class EcommerceEventsService {
    * @param productVariant the variant of the product to use.
    */
   sendViewItemEvent(product: Product, productVariant: ProductVariant): void {
-    this.gtmService.pushTag({ecommerce: null});
+    this.pushToDataLayer({ ecommerce: null });
     const event = this.getViewItemEvent(product, productVariant);
-    this.gtmService.pushTag(event);
+    this.pushToDataLayer(event);
     this.events.unshift(this.formatEcommerceEventAsString(event));
   }
 
@@ -517,9 +521,9 @@ export class EcommerceEventsService {
     productVariant: ProductVariant,
     quantity = 1
   ): void {
-    this.gtmService.pushTag({ecommerce: null});
+    this.pushToDataLayer({ ecommerce: null });
     const event = this.getAddToCartEvent(product, productVariant, quantity);
-    this.gtmService.pushTag(event);
+    this.pushToDataLayer(event);
     this.events.unshift(this.formatEcommerceEventAsString(event));
   }
 
@@ -535,13 +539,13 @@ export class EcommerceEventsService {
     productVariant: ProductVariant,
     quantity: number
   ): void {
-    this.gtmService.pushTag({ecommerce: null});
+    this.pushToDataLayer({ ecommerce: null });
     const event = this.getRemoveFromCartEvent(
       product,
       productVariant,
       quantity
     );
-    this.gtmService.pushTag(event);
+    this.pushToDataLayer(event);
     this.events.unshift(this.formatEcommerceEventAsString(event));
   }
 
@@ -551,9 +555,9 @@ export class EcommerceEventsService {
    * @param value the total value of the basket.
    */
   sendBeginCheckoutEvent(basket: Basket, value: number): void {
-    this.gtmService.pushTag({ecommerce: null});
+    this.pushToDataLayer({ ecommerce: null });
     const event = this.getBeginCheckoutEvent(basket, value);
-    this.gtmService.pushTag(event);
+    this.pushToDataLayer(event);
     this.events.unshift(this.formatEcommerceEventAsString(event));
   }
 
@@ -570,7 +574,7 @@ export class EcommerceEventsService {
     shippingTier?: string,
     paymentType?: string
   ): void {
-    this.gtmService.pushTag({ecommerce: null});
+    this.pushToDataLayer({ ecommerce: null });
     const event = this.getPurchaseEvent(
       basket,
       value,
@@ -578,7 +582,7 @@ export class EcommerceEventsService {
       shippingTier,
       paymentType
     );
-    this.gtmService.pushTag(event);
+    this.pushToDataLayer(event);
     this.events.unshift(this.formatEcommerceEventAsString(event));
   }
 
@@ -599,7 +603,7 @@ export class EcommerceEventsService {
     creativeName: string,
     creativeSlot: string
   ): void {
-    this.gtmService.pushTag({ecommerce: null});
+    this.pushToDataLayer({ ecommerce: null });
     const event = this.getViewPromotionEvent(
       product,
       productVariant,
@@ -608,7 +612,7 @@ export class EcommerceEventsService {
       creativeName,
       creativeSlot
     );
-    this.gtmService.pushTag(event);
+    this.pushToDataLayer(event);
     this.events.unshift(this.formatEcommerceEventAsString(event));
   }
 
@@ -636,7 +640,7 @@ export class EcommerceEventsService {
       creativeName,
       creativeSlot
     );
-    this.gtmService.pushTag({ecommerce: null});
+    this.pushToDataLayer({ ecommerce: null });
     const event = this.getSelectPromotionEvent(
       product,
       productVariant,
@@ -645,7 +649,7 @@ export class EcommerceEventsService {
       creativeName,
       creativeSlot
     );
-    this.gtmService.pushTag(event);
+    this.pushToDataLayer(event);
     this.events.unshift(this.formatEcommerceEventAsString(event));
   }
 
@@ -660,9 +664,9 @@ export class EcommerceEventsService {
     value: number,
     shippingTier: string
   ): void {
-    this.gtmService.pushTag({ecommerce: null});
+    this.pushToDataLayer({ ecommerce: null });
     const event = this.getAddShippingInfoEvent(basket, value, shippingTier);
-    this.gtmService.pushTag(event);
+    this.pushToDataLayer(event);
     this.events.unshift(this.formatEcommerceEventAsString(event));
   }
 
@@ -677,9 +681,9 @@ export class EcommerceEventsService {
     value: number,
     paymentType: string
   ): void {
-    this.gtmService.pushTag({ecommerce: null});
+    this.pushToDataLayer({ ecommerce: null });
     const event = this.getAddPaymentInfoEvent(basket, value, paymentType);
-    this.gtmService.pushTag(event);
+    this.pushToDataLayer(event);
     this.events.unshift(this.formatEcommerceEventAsString(event));
   }
 

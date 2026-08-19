@@ -18,10 +18,12 @@ import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
 
 import { AppModule } from './app/app.module';
 import { environment } from './environments/environment';
+import { loadGtmScripts } from './app/snippet-loader';
 
 if (environment.production) {
   enableProdMode();
 }
+loadGtmScripts();
 
 platformBrowserDynamic().bootstrapModule(AppModule)
   .catch(err => console.error(err));

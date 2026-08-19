@@ -17,7 +17,6 @@
  */
 
 import {Component} from '@angular/core';
-import {GoogleTagManagerService} from 'angular-google-tag-manager';
 import {ConsentService} from './services/consent.service';
 
 /** The route app component */
@@ -29,16 +28,8 @@ import {ConsentService} from './services/consent.service';
 export class AppComponent {
   showSidebar = true;
 
-  constructor(
-    private gtmService: GoogleTagManagerService,
-    private consentService: ConsentService,
-  ) {
-    // Ensure the default consent is fired first then add Google Tag Manager to
-    // the DOM.
-    this.consentService.isInitialized.subscribe(() => {
-      this.gtmService.addGtmToDom();
-    });
-  }
+constructor(private consentService: ConsentService) {
+}
 
   /**
    * Turn the sidebar on or off
