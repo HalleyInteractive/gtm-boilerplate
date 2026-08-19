@@ -7,6 +7,15 @@ declare global {
   }
 }
 
+function isGoogleTagManagerHost(urlStr: string): boolean {
+  try {
+    const parsed = new URL(urlStr, window.location.origin);
+    return parsed.hostname === 'www.googletagmanager.com' || parsed.hostname === 'googletagmanager.com';
+  } catch {
+    return false;
+  }
+}
+
 export function loadGtmScripts(): void {
   let tagType: string | null = null;
   let gtmContainerId = environment.gtmContainerId;
@@ -84,7 +93,7 @@ export function loadGtmScripts(): void {
   if (loadGtag) {
     const libScript = document.createElement('script');
     libScript.async = true;
-    if (scriptDomain.includes('googletagmanager.com')) {
+    if (isGoogleTagManagerHost(scriptDomain)) {
       libScript.src = `${scriptDomain}/gtag/js?id=${googleTagId}`;
     } else {
       libScript.src = `${scriptDomain}`;
@@ -122,7 +131,7 @@ export function loadGtmScripts(): void {
       const j = d.createElement(s) as HTMLScriptElement;
       const dl = l !== 'dataLayer' ? '&l=' + l : '';
       j.async = true;
-      if (scriptDomain.includes('googletagmanager.com')) {
+      if (isGoogleTagManagerHost(scriptDomain)) {
         j.src = `${scriptDomain}/gtm.js?id=${i}${dl}`;
       } else {
         j.src = `${scriptDomain}/${dl}`;
