@@ -21,6 +21,7 @@ import {RouterModule, Routes} from '@angular/router';
 import {BasketPageComponent} from './components/basket-page/basket-page.component';
 import {ConfirmationPageComponent} from './components/confirmation-page/confirmation-page.component';
 import {HomePageComponent} from './components/home-page/home-page.component';
+import {NewsletterPageComponent} from './components/newsletter-page/newsletter-page.component';
 import {ProductPageComponent} from './components/product-page/product-page.component';
 import {ProductsPageComponent} from './components/products-page/products-page.component';
 
@@ -40,6 +41,11 @@ const routes: Routes = [
     path: 'product/:id',
     component: ProductPageComponent,
     title: `Product ${storeNameSuffix}`,
+  },
+  {
+    path: 'newsletter',
+    component: NewsletterPageComponent,
+    title: `Newsletter ${storeNameSuffix}`,
   },
   {
     path: 'basket',

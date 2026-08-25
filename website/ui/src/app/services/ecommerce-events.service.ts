@@ -685,6 +685,22 @@ export class EcommerceEventsService {
   }
 
   /**
+   * Send the newsletter_signup event to GTM and log to the event stream.
+   * @param name The subscriber's name.
+   * @param email The subscriber's email address.
+   */
+  sendNewsletterSignupEvent(name: string, email: string): void {
+    const event = {
+      event: 'newsletter_signup',
+      method: 'website_form',
+      subscriber_name: name,
+      subscriber_email: email,
+    };
+    this.pushToDataLayer(event);
+    this.events.unshift(this.formatEcommerceEventAsString(event as unknown as EcommerceEvent));
+  }
+
+  /**
    * Format a given EcommerceEvent as a string.
    * @param event the event to format.
    * @return the event as a string.

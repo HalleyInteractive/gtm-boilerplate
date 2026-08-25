@@ -31,4 +31,17 @@ describe('EcommerceEventsService', () => {
   it('should be created', () => {
     expect(service).toBeTruthy();
   });
+
+  describe('sendNewsletterSignupEvent()', () => {
+    it('should push newsletter_signup event to dataLayer and prepend to events list', () => {
+      const initialEventsLength = service.events.length;
+
+      service.sendNewsletterSignupEvent('Jane Doe', 'jane@example.com');
+
+      expect(service.events.length).toBe(initialEventsLength + 1);
+      expect(service.events[0]).toContain('newsletter_signup');
+      expect(service.events[0]).toContain('Jane Doe');
+      expect(service.events[0]).toContain('jane@example.com');
+    });
+  });
 });

@@ -27,6 +27,7 @@ import {TagSettingsComponent} from './components/tag-settings/tag-settings.compo
 import {EventStreamComponent} from './components/event-stream/event-stream.component';
 import {HomePageComponent} from './components/home-page/home-page.component';
 import {LoginFormComponent} from './components/login-form/login-form.component';
+import {NewsletterPageComponent} from './components/newsletter-page/newsletter-page.component';
 import {ProductListComponent} from './components/product-list/product-list.component';
 import {ProductPageComponent} from './components/product-page/product-page.component';
 import {ProductsPageComponent} from './components/products-page/products-page.component';
@@ -51,6 +52,7 @@ import {TopBarComponent} from './components/top-bar/top-bar.component';
         TagSettingsComponent,
         LoginFormComponent,
         EventStreamComponent,
+        NewsletterPageComponent,
     ],
     providers: [],
     bootstrap: [AppComponent],
