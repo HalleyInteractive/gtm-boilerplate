@@ -17,9 +17,9 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app/ui
 
-# Install dependencies using package lockfile
+# Install dependencies inside the container
 COPY ui/package*.json ./
-RUN npm ci
+RUN npm install
 
 # Copy UI source code and build production distribution
 COPY ui/ ./
