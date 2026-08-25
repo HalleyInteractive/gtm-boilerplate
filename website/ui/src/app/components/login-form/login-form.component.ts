@@ -16,27 +16,31 @@
  * limitations under the License.
  */
 
-import {Component, OnInit, ElementRef} from '@angular/core';
-import {FormControl, FormGroup} from '@angular/forms';
+import { Component, OnInit, ElementRef, ChangeDetectionStrategy, inject } from '@angular/core';
+import { FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import {LoginService} from 'src/app/services/login.service';
+import { NgClass } from '@angular/common';
 
 /**
  * Login form component.
  */
 @Component({
-  selector: 'app-login-form',
-  templateUrl: './login-form.component.html',
-  styleUrl: './login-form.component.css',
-  host: {
-    '(document:click)': 'onDocumentClick($event)'
-  }
+    selector: 'app-login-form',
+    templateUrl: './login-form.component.html',
+    styleUrl: './login-form.component.css',
+    host: {
+        '(document:click)': 'onDocumentClick($event)'
+    },
+    changeDetection: ChangeDetectionStrategy.Eager,
+    imports: [NgClass, FormsModule, ReactiveFormsModule]
 })
 export class LoginFormComponent implements OnInit {
+  loginService = inject(LoginService);
+  private elementRef = inject(ElementRef);
+
   showOverlay = false;
   showDetails = false;
   userForm: FormGroup = new FormGroup({});;
-
-  constructor(public loginService: LoginService, private elementRef: ElementRef) {}
 
   ngOnInit(): void {
     // Initialize form with user data (if available)

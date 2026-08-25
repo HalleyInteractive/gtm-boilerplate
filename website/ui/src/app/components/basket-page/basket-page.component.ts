@@ -16,29 +16,32 @@
  * limitations under the License.
  */
 
-import {Component, OnInit} from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 import {Product, ProductVariant} from 'src/app/models/products';
 import {BasketService} from 'src/app/services/basket.service';
 import {EcommerceEventsService} from 'src/app/services/ecommerce-events.service';
 import {ProductsService} from 'src/app/services/products.service';
+import { RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { KeyValuePipe } from '@angular/common';
 
 /**
  * Basket page component.
  */
 @Component({
-  selector: 'app-basket-page',
-  templateUrl: './basket-page.component.html',
-  styleUrls: ['./basket-page.component.css'],
+    selector: 'app-basket-page',
+    templateUrl: './basket-page.component.html',
+    styleUrls: ['./basket-page.component.css'],
+    changeDetection: ChangeDetectionStrategy.Eager,
+    imports: [RouterLink, FormsModule, KeyValuePipe]
 })
 export class BasketPageComponent implements OnInit {
-  selectedShippingOption: string = '';
-  selectedPaymentOption: string = '';
+  basketService = inject(BasketService);
+  productsService = inject(ProductsService);
+  private ecommerceEventsService = inject(EcommerceEventsService);
 
-  constructor(
-    public basketService: BasketService,
-    public productsService: ProductsService,
-    private ecommerceEventsService: EcommerceEventsService
-  ) {}
+  selectedShippingOption = '';
+  selectedPaymentOption = '';
 
   ngOnInit(): void {
     this.sendBeginCheckoutEvent();

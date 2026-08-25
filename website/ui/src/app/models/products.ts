@@ -28,7 +28,7 @@ export interface Product {
   name: string;
   description: string;
   default_variant: string;
-  variants: {[sku: string]: ProductVariant};
+  variants: Record<string, ProductVariant>;
   item_brand?: string;
   item_category?: string;
   item_category2?: string;
@@ -68,9 +68,7 @@ export interface ProductVariant {
  * An object for storing a range of products. The key represents the unique
  * product ID, allowing fast lookups.
  */
-export interface Products {
-  [id: string]: Product;
-}
+export type Products = Record<string, Product>;
 
 /**
  * For adding an item to the basket create a BasketProduct.
@@ -97,6 +95,4 @@ export interface BasketProductCookie {
  * An object for storing a user's basket contents. The product variant sku is
  * used as a key for fast lookups and retrievals.
  */
-export interface Basket {
-  [sku: string]: BasketProduct;
-}
+export type Basket = Record<string, BasketProduct>;

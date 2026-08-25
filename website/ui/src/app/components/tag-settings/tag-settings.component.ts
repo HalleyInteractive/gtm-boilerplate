@@ -14,25 +14,25 @@
  * limitations under the License.
  */
 
-import { Component, OnInit, input } from '@angular/core';
-import { FormBuilder, FormGroup } from '@angular/forms';
+import { Component, OnInit, input, ChangeDetectionStrategy, inject } from '@angular/core';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { environment } from 'src/environments/environment';
 
 @Component({
-  selector: 'app-tag-settings',
-  templateUrl: './tag-settings.component.html',
-  styleUrl: './tag-settings.component.css'
+    selector: 'app-tag-settings',
+    templateUrl: './tag-settings.component.html',
+    styleUrl: './tag-settings.component.css',
+    changeDetection: ChangeDetectionStrategy.Eager,
+    imports: [FormsModule, ReactiveFormsModule]
 })
 export class TagSettingsComponent implements OnInit {
+  private fb = inject(FormBuilder);
+
   sidebarCollapsed = input<boolean>(false);
   settingsForm!: FormGroup;
   showOverlay = false;
   isLocalStorageEnabled = true;
   currentImplementationLabel = '';
-
-  constructor(
-    private fb: FormBuilder
-  ) { }
 
   ngOnInit(): void {
     this.isLocalStorageEnabled = this.checkLocalStorage();
@@ -44,7 +44,7 @@ export class TagSettingsComponent implements OnInit {
       localStorage.setItem('__test_ls__', '1');
       localStorage.removeItem('__test_ls__');
       return true;
-    } catch (e) {
+    } catch {
       return false;
     }
   }
@@ -75,17 +75,12 @@ export class TagSettingsComponent implements OnInit {
         storedTagType = localStorage.getItem('tag-type') || 'gtm-default';
         gtmContainerId = localStorage.getItem('gtm-container-id') || environment.gtmContainerId;
         googleTagId = localStorage.getItem('google-tag-id') || environment.googleTagId;
-      } catch (e) {
+      } catch {
         this.isLocalStorageEnabled = false;
       }
     }
 
-    let library = 'gtm';
-    if (storedTagType.startsWith('gtag')) {
-      library = 'gtag';
-    } else {
-      library = 'gtm';
-    }
+    const library = storedTagType.startsWith('gtag') ? 'gtag' : 'gtm';
 
     // GTM:
     let gtmEnableGtg = false;
@@ -158,7 +153,7 @@ export class TagSettingsComponent implements OnInit {
           || localStorage.getItem('sgtm-endpoint-url')
           || environment.sgtmEndpointUrl;
 
-      } catch (e) {
+      } catch {
         this.isLocalStorageEnabled = false;
       }
     }
@@ -217,7 +212,7 @@ export class TagSettingsComponent implements OnInit {
     }
 
     // Determine and save active `tag-type`
-    let tagType = 'gtm-default';
+    let tagType: string;
     if (formValue.library === 'gtag') {
       if (formValue.gtagEnableGtg) {
         tagType = formValue.gtagGtgType.startsWith('cdn') ? 'gtag-gtg-via-cdn' : 'gtag-gtg-via-sgtm';

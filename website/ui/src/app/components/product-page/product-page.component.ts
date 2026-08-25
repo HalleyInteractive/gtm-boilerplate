@@ -16,34 +16,37 @@
  * limitations under the License.
  */
 
-import {Component, OnInit} from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 import {ActivatedRoute} from '@angular/router';
 import {Product, ProductVariant} from 'src/app/models/products';
 import {BasketService} from 'src/app/services/basket.service';
 import {EcommerceEventsService} from 'src/app/services/ecommerce-events.service';
 import {ProductsService} from 'src/app/services/products.service';
+import { NgClass, KeyValuePipe } from '@angular/common';
 
 /**
  * Product page component.
  */
 @Component({
-  selector: 'app-product-page',
-  templateUrl: './product-page.component.html',
-  styleUrls: ['./product-page.component.css'],
+    selector: 'app-product-page',
+    templateUrl: './product-page.component.html',
+    styleUrls: ['./product-page.component.css'],
+    changeDetection: ChangeDetectionStrategy.Eager,
+    imports: [NgClass, KeyValuePipe]
 })
 export class ProductPageComponent implements OnInit {
+  private route = inject(ActivatedRoute);
+  productsService = inject(ProductsService);
+  basketService = inject(BasketService);
+  private ecommerceEventsService = inject(EcommerceEventsService);
+
   productId: string | null = '';
   product?: Product;
   productVariant?: ProductVariant;
   addedToCart = false;
   addToCartText!: string;
 
-  constructor(
-    private route: ActivatedRoute,
-    public productsService: ProductsService,
-    public basketService: BasketService,
-    private ecommerceEventsService: EcommerceEventsService,
-  ) {
+  constructor() {
     this.setDefaultAddToCartText();
   }
 

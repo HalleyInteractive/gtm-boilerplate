@@ -16,78 +16,86 @@
  * limitations under the License.
  */
 
-import {TestBed} from '@angular/core/testing';
-import {BasketService} from 'src/app/services/basket.service';
-import {EcommerceEventsService} from 'src/app/services/ecommerce-events.service';
-import {ProductsService} from 'src/app/services/products.service';
-import {BasketPageComponent} from './basket-page.component';
+import { TestBed } from '@angular/core/testing';
+import type { Mock } from 'vitest';
+import { Basket, Product, ProductVariant, Products } from 'src/app/models/products';
+import { BasketService } from 'src/app/services/basket.service';
+import { EcommerceEventsService } from 'src/app/services/ecommerce-events.service';
+import { ProductsService } from 'src/app/services/products.service';
+import { BasketPageComponent } from './basket-page.component';
 
 describe('BasketPageComponent', () => {
-  let component: BasketPageComponent;
-  let mockBasketService: jasmine.SpyObj<BasketService>;
-  let mockEcommerceEventsService: jasmine.SpyObj<EcommerceEventsService>;
-  let mockProductsService: jasmine.SpyObj<ProductsService>;
+    let component: BasketPageComponent;
+    let mockBasketService: {
+        getBasket: Mock<() => Basket | undefined>;
+        updateBasket: Mock<(product: Product, productVariant: ProductVariant, quantity: number) => void>;
+        calculateTotalBasketPrice: Mock<() => number>;
+    };
+    let mockEcommerceEventsService: {
+        sendBeginCheckoutEvent: Mock<(basket: Basket, value: number) => void>;
+        sendAddToCartEvent: Mock<(product: Product, productVariant: ProductVariant, quantity?: number) => void>;
+        sendRemoveFromCartEvent: Mock<(product: Product, productVariant: ProductVariant, quantity: number) => void>;
+    };
+    let mockProductsService: {
+        products: Products;
+    };
 
-  beforeEach(async () => {
-    mockBasketService = jasmine.createSpyObj('BasketService', [
-      'getBasket',
-      'updateBasket',
-      'calculateTotalBasketPrice',
-    ]);
-    mockEcommerceEventsService = jasmine.createSpyObj(
-      'EcommerceEventsService',
-      ['sendBeginCheckoutEvent', 'sendAddToCartEvent', 'sendRemoveFromCartEvent']
-    );
-    mockProductsService = jasmine.createSpyObj('ProductsService', ['products']);
+    beforeEach(async () => {
+        mockBasketService = {
+            getBasket: vi.fn().mockName("BasketService.getBasket"),
+            updateBasket: vi.fn().mockName("BasketService.updateBasket"),
+            calculateTotalBasketPrice: vi.fn().mockName("BasketService.calculateTotalBasketPrice")
+        };
+        mockEcommerceEventsService = {
+            sendBeginCheckoutEvent: vi.fn().mockName("EcommerceEventsService.sendBeginCheckoutEvent"),
+            sendAddToCartEvent: vi.fn().mockName("EcommerceEventsService.sendAddToCartEvent"),
+            sendRemoveFromCartEvent: vi.fn().mockName("EcommerceEventsService.sendRemoveFromCartEvent")
+        };
+        mockProductsService = {
+            products: {}
+        };
 
-    await TestBed.configureTestingModule({
-      declarations: [BasketPageComponent],
-      providers: [
-        {provide: BasketService, useValue: mockBasketService},
+        await TestBed.configureTestingModule({
+    imports: [BasketPageComponent],
+    providers: [
+        { provide: BasketService, useValue: mockBasketService },
         {
-          provide: EcommerceEventsService,
-          useValue: mockEcommerceEventsService,
+            provide: EcommerceEventsService,
+            useValue: mockEcommerceEventsService,
         },
-        {provide: ProductsService, useValue: mockProductsService},
-      ],
-    }).compileComponents();
-  });
-
-  beforeEach(() => {
-    const fixture = TestBed.createComponent(BasketPageComponent);
-    component = fixture.componentInstance;
-  });
-
-  it('should create', () => {
-    expect(component).toBeTruthy();
-  });
-
-  describe('sendBeginCheckoutEvent()', () => {
-    it('should send the begin checkout event with basket and total price', () => {
-      const mockBasket = {};
-      const mockTotalPrice = 100;
-
-      mockBasketService.getBasket.and.returnValue(mockBasket);
-      mockBasketService.calculateTotalBasketPrice.and.returnValue(
-        mockTotalPrice
-      );
-
-      component.sendBeginCheckoutEvent();
-
-      expect(mockEcommerceEventsService.sendBeginCheckoutEvent).toHaveBeenCalledWith(
-        mockBasket,
-        mockTotalPrice
-      );
+        { provide: ProductsService, useValue: mockProductsService },
+    ],
+}).compileComponents();
     });
 
-    it('should not send the event if the basket is empty', () => {
-      mockBasketService.getBasket.and.returnValue(undefined);
-
-      component.sendBeginCheckoutEvent();
-
-      expect(
-        mockEcommerceEventsService.sendBeginCheckoutEvent
-      ).not.toHaveBeenCalled();
+    beforeEach(() => {
+        const fixture = TestBed.createComponent(BasketPageComponent);
+        component = fixture.componentInstance;
     });
-  });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+
+    describe('sendBeginCheckoutEvent()', () => {
+        it('should send the begin checkout event with basket and total price', () => {
+            const mockBasket: Basket = {};
+            const mockTotalPrice = 100;
+
+            mockBasketService.getBasket.mockReturnValue(mockBasket);
+            mockBasketService.calculateTotalBasketPrice.mockReturnValue(mockTotalPrice);
+
+            component.sendBeginCheckoutEvent();
+
+            expect(mockEcommerceEventsService.sendBeginCheckoutEvent).toHaveBeenCalledWith(mockBasket, mockTotalPrice);
+        });
+
+        it('should not send the event if the basket is empty', () => {
+            mockBasketService.getBasket.mockReturnValue(undefined);
+
+            component.sendBeginCheckoutEvent();
+
+            expect(mockEcommerceEventsService.sendBeginCheckoutEvent).not.toHaveBeenCalled();
+        });
+    });
 });

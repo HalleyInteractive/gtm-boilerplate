@@ -16,11 +16,12 @@
  * limitations under the License.
  */
 
-import {Component, OnInit} from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 import {Router} from '@angular/router';
 import {Product, ProductVariant} from 'src/app/models/products';
 import {EcommerceEventsService} from 'src/app/services/ecommerce-events.service';
 import {ProductsService} from 'src/app/services/products.service';
+import { ProductListComponent } from '../product-list/product-list.component';
 
 interface PromotionData {
   promotion_id: string;
@@ -33,11 +34,17 @@ interface PromotionData {
  * Products page component.
  */
 @Component({
-  selector: 'app-products-page',
-  templateUrl: './products-page.component.html',
-  styleUrls: ['./products-page.component.css'],
+    selector: 'app-products-page',
+    templateUrl: './products-page.component.html',
+    styleUrls: ['./products-page.component.css'],
+    changeDetection: ChangeDetectionStrategy.Eager,
+    imports: [ProductListComponent]
 })
 export class ProductsPageComponent implements OnInit {
+  private productsService = inject(ProductsService);
+  private ecommerceEventsService = inject(EcommerceEventsService);
+  private router = inject(Router);
+
   private promotionDataOptions: PromotionData[] = [
     {
       promotion_id: 'summer_sale_hats',
@@ -66,11 +73,7 @@ export class ProductsPageComponent implements OnInit {
   ];
   private currentPromotionData: PromotionData | null = null;
 
-  constructor(
-    private productsService: ProductsService,
-    private ecommerceEventsService: EcommerceEventsService,
-    private router: Router
-  ) {
+  constructor() {
     const randomIndex = Math.floor(
       Math.random() * this.promotionDataOptions.length
     );

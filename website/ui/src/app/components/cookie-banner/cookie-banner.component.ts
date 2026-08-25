@@ -16,27 +16,28 @@
  * limitations under the License.
  */
 
-import {Component, OnInit} from '@angular/core';
-import {FormBuilder, FormControl, FormGroup} from '@angular/forms';
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
+import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import {Consent, ConsentStatus} from 'src/app/models/consent';
 import {ConsentService} from 'src/app/services/consent.service';
+import { NgClass } from '@angular/common';
 
 /**
  * Cookie Banner Component.
  */
 @Component({
-  selector: 'app-cookie-banner',
-  templateUrl: './cookie-banner.component.html',
-  styleUrl: './cookie-banner.component.css',
+    selector: 'app-cookie-banner',
+    templateUrl: './cookie-banner.component.html',
+    styleUrl: './cookie-banner.component.css',
+    changeDetection: ChangeDetectionStrategy.Eager,
+    imports: [NgClass, FormsModule, ReactiveFormsModule]
 })
 export class CookieBannerComponent implements OnInit {
+  private consentService = inject(ConsentService);
+  private fb = inject(FormBuilder);
+
   showOverlay = false;
   consentForm!: FormGroup;
-
-  constructor(
-    private consentService: ConsentService,
-    private fb: FormBuilder,
-  ) {}
 
   /**
    * Show cookie consent if first time on site, else save preferences.
@@ -80,7 +81,7 @@ export class CookieBannerComponent implements OnInit {
    */
   private changeAllCheckBoxes(state: boolean): void {
     for (const controlName in this.consentForm.controls) {
-      if (this.consentForm.controls.hasOwnProperty(controlName)) {
+      if (Object.prototype.hasOwnProperty.call(this.consentForm.controls, controlName)) {
         const control = this.consentForm.get(controlName);
         if (control instanceof FormControl) {
           control.setValue(state);
@@ -119,7 +120,7 @@ export class CookieBannerComponent implements OnInit {
    * @return An object resembling the consent but in boolean form, where
    *  granted is true, and denied is false.
    */
-  private transformConsentForForm(consent: Consent): {} {
+  private transformConsentForForm(consent: Consent): Record<string, boolean> {
     return {
       ad_storage: consent.ad_storage === ConsentStatus.GRANTED,
       ad_user_data: consent.ad_user_data === ConsentStatus.GRANTED,

@@ -1,17 +1,17 @@
 <!--
- Copyright 2024 Google LLC
+Copyright 2024 Google LLC
 
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-      http://www.apache.org/licenses/LICENSE-2.0
+http://www.apache.org/licenses/LICENSE-2.0
 
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 -->
 <div class="login-form">
   <div class="login-form-overlay" [ngClass]="{'show-banner': showOverlay}">
@@ -27,10 +27,10 @@
         <div class="form-group">
           <label for="first_name">First Name:</label>
           <input type="text" formControlName="first_name" name="first_name" required="required">
-          </div>
-          <div class="form-group">
-            <label for="last_name">Last Name:</label>
-            <input type="text" formControlName="last_name" name="last_name" required="required">
+        </div>
+        <div class="form-group">
+          <label for="last_name">Last Name:</label>
+          <input type="text" formControlName="last_name" name="last_name" required="required">
         </div>
         <div class="form-group">
           <label for="email">Email:</label>
@@ -40,30 +40,34 @@
       </form>
     </div>
   </div>
-  <div *ngIf="loginService.isLoggedIn">
-    <div class="hello-container">
-      <div class="hello-name-container">
-        <button class="dropdown-arrow" (click)="toggleDetails()" [class.open]="showDetails">
-          ▼
-        </button>
-        <span class="hello">Hello <a (click)="toggleOverlay()">{{ loginService.user.name }}</a></span>
+  @if (loginService.isLoggedIn) {
+    <div>
+      <div class="hello-container">
+        <div class="hello-name-container">
+          <button class="dropdown-arrow" (click)="toggleDetails()" [class.open]="showDetails">
+            ▼
+          </button>
+          <span class="hello">Hello <a (click)="toggleOverlay()">{{ loginService.user.name }}</a></span>
+        </div>
+        <span class="user-id">ID: {{ loginService.user.id }}</span>
+        <div class="user-details-dropdown" [class.hidden]="!showDetails">
+          <div class="user-detail-row">Email: <span class="upd-email">{{ loginService.user.email }}</span></div>
+          <div class="user-detail-row">Phone: <span class="upd-phone-number">{{ loginService.user.phone_number }}</span></div>
+          <div class="user-detail-row">First Name: <span class="upd-first-name">{{ loginService.user.address?.first_name }}</span></div>
+          <div class="user-detail-row">Last Name: <span class="upd-last-name">{{ loginService.user.address?.last_name }}</span></div>
+          <div class="user-detail-row">Street: <span class="upd-street">{{ loginService.user.address?.street }}</span></div>
+          <div class="user-detail-row">City: <span class="upd-city">{{ loginService.user.address?.city }}</span></div>
+          <div class="user-detail-row">Region: <span class="upd-region">{{ loginService.user.address?.region }}</span></div>
+          <div class="user-detail-row">Postal Code: <span class="upd-postal-code">{{ loginService.user.address?.postal_code }}</span></div>
+          <div class="user-detail-row">Country: <span class="upd-country">{{ loginService.user.address?.country }}</span></div>
+        </div>
       </div>
-      <span class="user-id">ID: {{ loginService.user.id }}</span>
-      <div class="user-details-dropdown" [class.hidden]="!showDetails">
-        <div class="user-detail-row">Email: <span class="upd-email">{{ loginService.user.email }}</span></div>
-        <div class="user-detail-row">Phone: <span class="upd-phone-number">{{ loginService.user.phone_number }}</span></div>
-        <div class="user-detail-row">First Name: <span class="upd-first-name">{{ loginService.user.address?.first_name }}</span></div>
-        <div class="user-detail-row">Last Name: <span class="upd-last-name">{{ loginService.user.address?.last_name }}</span></div>
-        <div class="user-detail-row">Street: <span class="upd-street">{{ loginService.user.address?.street }}</span></div>
-        <div class="user-detail-row">City: <span class="upd-city">{{ loginService.user.address?.city }}</span></div>
-        <div class="user-detail-row">Region: <span class="upd-region">{{ loginService.user.address?.region }}</span></div>
-        <div class="user-detail-row">Postal Code: <span class="upd-postal-code">{{ loginService.user.address?.postal_code }}</span></div>
-        <div class="user-detail-row">Country: <span class="upd-country">{{ loginService.user.address?.country }}</span></div>
-      </div>
+      <a class="logout btn" (click)="logout()">Log out</a>
     </div>
-    <a class="logout btn" (click)="logout()">Log out</a>
-  </div>
-  <div *ngIf="!loginService.isLoggedIn">
-    <a class="login btn" (click)="toggleOverlay()">Log In</a>
-  </div>
+  }
+  @if (!loginService.isLoggedIn) {
+    <div>
+      <a class="login btn" (click)="toggleOverlay()">Log In</a>
+    </div>
+  }
 </div>

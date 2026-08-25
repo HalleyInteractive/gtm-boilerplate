@@ -16,20 +16,34 @@
  * limitations under the License.
  */
 
-import {Component} from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
+import { NgClass } from '@angular/common';
+import { RouterOutlet } from '@angular/router';
 import {ConsentService} from './services/consent.service';
+import {TopBarComponent} from './components/top-bar/top-bar.component';
+import {TagSettingsComponent} from './components/tag-settings/tag-settings.component';
+import {CookieBannerComponent} from './components/cookie-banner/cookie-banner.component';
+import {EventStreamComponent} from './components/event-stream/event-stream.component';
 
 /** The route app component */
 @Component({
-  selector: 'app-root',
-  templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css'],
+    selector: 'app-root',
+    templateUrl: './app.component.html',
+    styleUrls: ['./app.component.css'],
+    changeDetection: ChangeDetectionStrategy.Eager,
+    imports: [
+      NgClass,
+      RouterOutlet,
+      TopBarComponent,
+      TagSettingsComponent,
+      CookieBannerComponent,
+      EventStreamComponent,
+    ]
 })
 export class AppComponent {
-  showSidebar = true;
+  private consentService = inject(ConsentService);
 
-constructor(private consentService: ConsentService) {
-}
+  showSidebar = true;
 
   /**
    * Turn the sidebar on or off

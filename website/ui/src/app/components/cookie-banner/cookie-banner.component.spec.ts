@@ -16,45 +16,49 @@
  * limitations under the License.
  */
 
-import {ComponentFixture, TestBed} from '@angular/core/testing';
-
-import {FormBuilder} from '@angular/forms';
-import {Consent, ConsentStatus} from 'src/app/models/consent';
-import {ConsentService} from 'src/app/services/consent.service';
-import {CookieBannerComponent} from './cookie-banner.component';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import type { Mock } from 'vitest';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { Consent, ConsentStatus, ConsentUpdate } from 'src/app/models/consent';
+import { ConsentService } from 'src/app/services/consent.service';
+import { CookieBannerComponent } from './cookie-banner.component';
 
 describe('CookieBannerComponent', () => {
-  let component: CookieBannerComponent;
-  let fixture: ComponentFixture<CookieBannerComponent>;
+    let component: CookieBannerComponent;
+    let fixture: ComponentFixture<CookieBannerComponent>;
 
-  beforeEach(async () => {
-    const mockConsentService = jasmine.createSpyObj('ConsentService', [
-      'hasConsentCookie',
-      'getCurrentConsent',
-      'setCurrentConsent',
-    ]);
+    beforeEach(async () => {
+        const mockConsentService: {
+            hasConsentCookie: Mock<() => boolean>;
+            getCurrentConsent: Mock<() => Consent>;
+            setCurrentConsent: Mock<(consent: ConsentUpdate) => void>;
+        } = {
+            hasConsentCookie: vi.fn().mockName("ConsentService.hasConsentCookie"),
+            getCurrentConsent: vi.fn().mockName("ConsentService.getCurrentConsent"),
+            setCurrentConsent: vi.fn().mockName("ConsentService.setCurrentConsent")
+        };
 
-    mockConsentService.getCurrentConsent.and.returnValue({
-      'ad_storage': ConsentStatus.DENIED,
-      'ad_user_data': ConsentStatus.DENIED,
-      'ad_personalization': ConsentStatus.DENIED,
-      'analytics_storage': ConsentStatus.DENIED,
-    } as Consent);
+        mockConsentService.getCurrentConsent.mockReturnValue({
+            'ad_storage': ConsentStatus.DENIED,
+            'ad_user_data': ConsentStatus.DENIED,
+            'ad_personalization': ConsentStatus.DENIED,
+            'analytics_storage': ConsentStatus.DENIED,
+        } as Consent);
 
-    await TestBed.configureTestingModule({
-      declarations: [CookieBannerComponent],
-      providers: [
-        {provide: ConsentService, useValue: mockConsentService},
+        await TestBed.configureTestingModule({
+    imports: [ReactiveFormsModule, CookieBannerComponent],
+    providers: [
+        { provide: ConsentService, useValue: mockConsentService },
         FormBuilder,
-      ],
-    }).compileComponents();
+    ],
+}).compileComponents();
 
-    fixture = TestBed.createComponent(CookieBannerComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
+        fixture = TestBed.createComponent(CookieBannerComponent);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
-  });
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
 });

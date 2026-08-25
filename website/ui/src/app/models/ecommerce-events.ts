@@ -152,16 +152,12 @@ export interface Purchase extends EcommerceObject {
 /**
  * An ecommerce view_promotion event.
  */
-export interface ViewPromotion extends EcommerceObject {
-  // No additional properties beyond EcommerceObject.items for this event in GA4 schema
-}
+export type ViewPromotion = EcommerceObject;
 
 /**
  * An ecommerce select_promotion event.
  */
-export interface SelectPromotion extends EcommerceObject {
-  // No additional properties beyond EcommerceObject.items for this event in GA4 schema
-}
+export type SelectPromotion = EcommerceObject;
 
 /**
  * An ecommerce add_shipping_info event.

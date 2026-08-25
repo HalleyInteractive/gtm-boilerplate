@@ -25,9 +25,9 @@ describe('EventStreamComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [EventStreamComponent],
-      providers: [],
-    }).compileComponents();
+    imports: [EventStreamComponent],
+    providers: [],
+}).compileComponents();
 
     fixture = TestBed.createComponent(EventStreamComponent);
     component = fixture.componentInstance;

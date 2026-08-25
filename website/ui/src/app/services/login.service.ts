@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-import {DOCUMENT} from '@angular/common';
-import {Inject, Injectable} from '@angular/core';
+
+import { Injectable, DOCUMENT, inject } from '@angular/core';
 import {CookieService} from 'ngx-cookie-service';
 import {User} from '../models/user';
 
@@ -28,6 +28,9 @@ import {User} from '../models/user';
   providedIn: 'root',
 })
 export class LoginService {
+  private cookieService = inject(CookieService);
+  private document = inject<Document>(DOCUMENT);
+
   isLoggedIn = false;
   user: User;
 
@@ -72,13 +75,9 @@ export class LoginService {
     }
   };
   // The datalayer is set in index.html so it is always present.
-  // Using any as the content of the datalayer is externally managed by GTM.
-  private dataLayer!: any[];
+  private dataLayer: unknown[] = [];
 
-  constructor(
-    private cookieService: CookieService,
-    @Inject(DOCUMENT) private document: Document,
-  ) {
+  constructor() {
     this.user = this.getUserFromCookie();
     this.getDataLayerFromPage();
   }
@@ -87,9 +86,9 @@ export class LoginService {
    * Pull the datalayer from the page.
    */
   private getDataLayerFromPage(): void {
-    const defaultView = this.document.defaultView;
-    if (defaultView != null && 'dataLayer' in defaultView) {
-      this.dataLayer = defaultView.dataLayer as any[];
+    const defaultView = this.document.defaultView as (Window & { dataLayer?: unknown[] }) | null;
+    if (defaultView != null && Array.isArray(defaultView.dataLayer)) {
+      this.dataLayer = defaultView.dataLayer;
     }
   }
 
@@ -153,7 +152,15 @@ export class LoginService {
       const user: User = JSON.parse(loginCookie);
       
       // Clean up legacy flat address fields from old cookies
-      const legacyUser = { ...user } as any;
+      const legacyUser = { ...user } as Partial<User> & {
+        first_name?: string;
+        last_name?: string;
+        street?: string;
+        city?: string;
+        region?: string;
+        postal_code?: string;
+        country?: string;
+      };
       delete legacyUser.first_name;
       delete legacyUser.last_name;
       delete legacyUser.street;
@@ -164,7 +171,7 @@ export class LoginService {
 
       // Discard legacy formatted phone numbers and their incorrect hashes
       if (
-        legacyUser.phone_number &&
+        typeof legacyUser.phone_number === 'string' &&
         (legacyUser.phone_number.includes(' ') || legacyUser.phone_number.includes('-'))
       ) {
         delete legacyUser.phone_number;

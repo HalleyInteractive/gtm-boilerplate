@@ -16,31 +16,32 @@
  * limitations under the License.
  */
 
-import {Component, OnInit} from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 import {Router} from '@angular/router';
 import {Basket} from 'src/app/models/products';
 import {BasketService} from 'src/app/services/basket.service';
 import {EcommerceEventsService} from 'src/app/services/ecommerce-events.service';
 import {ProductsService} from 'src/app/services/products.service';
 import {v4 as uuidv4} from 'uuid';
+import { KeyValuePipe } from '@angular/common';
 
 /**
  * Confirmation page component.
  */
 @Component({
-  selector: 'app-confirmation-page',
-  templateUrl: './confirmation-page.component.html',
-  styleUrl: './confirmation-page.component.css',
+    selector: 'app-confirmation-page',
+    templateUrl: './confirmation-page.component.html',
+    styleUrl: './confirmation-page.component.css',
+    changeDetection: ChangeDetectionStrategy.Eager,
+    imports: [KeyValuePipe]
 })
 export class ConfirmationPageComponent implements OnInit {
-  transactionId: string = uuidv4();
+  private router = inject(Router);
+  basketService = inject(BasketService);
+  productsService = inject(ProductsService);
+  private ecommerceEventsService = inject(EcommerceEventsService);
 
-  constructor(
-    private router: Router,
-    public basketService: BasketService,
-    public productsService: ProductsService,
-    private ecommerceEventsService: EcommerceEventsService,
-  ) {}
+  transactionId: string = uuidv4();
 
   ngOnInit(): void {
     this.basketService.clearBasketCookie();

@@ -16,35 +16,34 @@
  * limitations under the License.
  */
 
-import {Component, OnInit} from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
 import {BasketService} from 'src/app/services/basket.service';
 import {ProductsService} from 'src/app/services/products.service';
 import {EcommerceEventsService} from 'src/app/services/ecommerce-events.service';
 import {Product} from 'src/app/models/products';
+import { RouterLink } from '@angular/router';
+import { KeyValuePipe } from '@angular/common';
 
 /**
  * Product List Component
  */
 @Component({
-  selector: 'app-product-list',
-  templateUrl: './product-list.component.html',
-  styleUrls: ['./product-list.component.css'],
+    selector: 'app-product-list',
+    templateUrl: './product-list.component.html',
+    styleUrls: ['./product-list.component.css'],
+    changeDetection: ChangeDetectionStrategy.Eager,
+    imports: [RouterLink, KeyValuePipe]
 })
-export class ProductListComponent implements OnInit {
-  constructor(
-    public productsService: ProductsService,
-    public basketService: BasketService,
-    private ecommerceEventsService: EcommerceEventsService
-  ) {}
-
-  ngOnInit(): void {}
+export class ProductListComponent {
+  productsService = inject(ProductsService);
+  basketService = inject(BasketService);
+  private ecommerceEventsService = inject(EcommerceEventsService);
 
   /**
    * Sends the 'select_item' event when a product is clicked.
    * @param product The product that was clicked.
-   * @param index The index of the product in the list.
    */
-  selectItem(product: Product, index: number): void {
+  selectItem(product: Product): void {
     const productVariant =
       this.productsService.getDefaultProductVariant(product);
     this.ecommerceEventsService.sendSelectItemEvent(product, productVariant);

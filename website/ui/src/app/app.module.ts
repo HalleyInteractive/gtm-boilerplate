@@ -18,7 +18,6 @@ import {NgModule} from '@angular/core';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {BrowserModule} from '@angular/platform-browser';
 
-import {environment} from 'src/environments/environment';
 import {AppRoutingModule} from './app-routing.module';
 import {AppComponent} from './app.component';
 import {BasketPageComponent} from './components/basket-page/basket-page.component';
@@ -34,27 +33,26 @@ import {ProductsPageComponent} from './components/products-page/products-page.co
 import {TopBarComponent} from './components/top-bar/top-bar.component';
 
 @NgModule({
-  declarations: [
-    AppComponent,
-    TopBarComponent,
-    HomePageComponent,
-    ProductsPageComponent,
-    ProductListComponent,
-    ProductPageComponent,
-    BasketPageComponent,
-    ConfirmationPageComponent,
-    CookieBannerComponent,
-    TagSettingsComponent,
-    LoginFormComponent,
-    EventStreamComponent,
-  ],
-  imports: [
-    BrowserModule,
-    AppRoutingModule,
-    FormsModule,
-    ReactiveFormsModule,
-  ],
-  providers: [],
-  bootstrap: [AppComponent],
+    declarations: [],
+    imports: [
+        BrowserModule,
+        AppRoutingModule,
+        FormsModule,
+        ReactiveFormsModule,
+        AppComponent,
+        TopBarComponent,
+        HomePageComponent,
+        ProductsPageComponent,
+        ProductListComponent,
+        ProductPageComponent,
+        BasketPageComponent,
+        ConfirmationPageComponent,
+        CookieBannerComponent,
+        TagSettingsComponent,
+        LoginFormComponent,
+        EventStreamComponent,
+    ],
+    providers: [],
+    bootstrap: [AppComponent],
 })
 export class AppModule {}

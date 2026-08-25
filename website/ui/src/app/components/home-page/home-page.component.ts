@@ -16,16 +16,17 @@
  * limitations under the License.
  */
 
-import {Component, OnInit} from '@angular/core';
+import {Component, ChangeDetectionStrategy} from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 /**
  * The home page component.
  */
 @Component({
-  selector: 'app-home-page',
-  templateUrl: './home-page.component.html',
-  styleUrls: ['./home-page.component.css'],
+    selector: 'app-home-page',
+    templateUrl: './home-page.component.html',
+    styleUrls: ['./home-page.component.css'],
+    changeDetection: ChangeDetectionStrategy.Eager,
+    imports: [RouterLink]
 })
-export class HomePageComponent implements OnInit {
-  ngOnInit(): void {}
-}
+export class HomePageComponent {}

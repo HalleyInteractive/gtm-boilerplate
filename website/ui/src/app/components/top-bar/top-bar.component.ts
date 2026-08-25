@@ -16,23 +16,28 @@
  * limitations under the License.
  */
 
-import {Component, OnDestroy, OnInit} from '@angular/core';
+import { Component, OnDestroy, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 import {Subscription} from 'rxjs';
 import {BasketService} from 'src/app/services/basket.service';
+import { RouterLink } from '@angular/router';
+import { LoginFormComponent } from '../login-form/login-form.component';
+import { NgClass } from '@angular/common';
 
 /**
  * Top bar component.
  */
 @Component({
-  selector: 'app-top-bar',
-  templateUrl: './top-bar.component.html',
-  styleUrls: ['./top-bar.component.css'],
+    selector: 'app-top-bar',
+    templateUrl: './top-bar.component.html',
+    styleUrls: ['./top-bar.component.css'],
+    changeDetection: ChangeDetectionStrategy.Eager,
+    imports: [RouterLink, LoginFormComponent, NgClass]
 })
 export class TopBarComponent implements OnInit, OnDestroy {
-  private eventSubscription!: Subscription;
-  shakeCart = false;
+  private basketService = inject(BasketService);
 
-  constructor(private basketService: BasketService) {}
+  private eventSubscription?: Subscription;
+  shakeCart = false;
 
   ngOnInit(): void {
     this.eventSubscription = this.basketService
@@ -52,7 +57,7 @@ export class TopBarComponent implements OnInit, OnDestroy {
     }, 1000);
   }
 
-  ngOnDestroy() {
-    this.eventSubscription.unsubscribe();
+  ngOnDestroy(): void {
+    this.eventSubscription?.unsubscribe();
   }
 }

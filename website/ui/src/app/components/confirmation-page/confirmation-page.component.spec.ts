@@ -16,52 +16,61 @@
  * limitations under the License.
  */
 
-import {ComponentFixture, TestBed} from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import {BasketService} from 'src/app/services/basket.service';
-import {EcommerceEventsService} from 'src/app/services/ecommerce-events.service';
-import {ProductsService} from 'src/app/services/products.service';
-import {ConfirmationPageComponent} from './confirmation-page.component';
+import type { Mock } from 'vitest';
+import { Basket, Product, ProductVariant } from 'src/app/models/products';
+import { BasketService } from 'src/app/services/basket.service';
+import { EcommerceEventsService } from 'src/app/services/ecommerce-events.service';
+import { ProductsService } from 'src/app/services/products.service';
+import { ConfirmationPageComponent } from './confirmation-page.component';
 
 describe('ConfirmationPageComponent', () => {
-  let component: ConfirmationPageComponent;
-  let fixture: ComponentFixture<ConfirmationPageComponent>;
-  let mockBasketService: jasmine.SpyObj<BasketService>;
-  let mockEcommerceEventsService: jasmine.SpyObj<EcommerceEventsService>;
-  let mockProductsService: jasmine.SpyObj<ProductsService>;
+    let component: ConfirmationPageComponent;
+    let fixture: ComponentFixture<ConfirmationPageComponent>;
+    let mockBasketService: {
+        clearBasketCookie: Mock<() => void>;
+        isBasketEmpty: Mock<() => boolean>;
+        calculateTotalBasketPrice: Mock<() => number>;
+    };
+    let mockEcommerceEventsService: {
+        sendPurchaseEvent: Mock<(basket: Basket, value: number, transaction_id: string, shippingTier?: string, paymentType?: string) => void>;
+    };
+    let mockProductsService: {
+        getProductVariantPriceAsCurrency: Mock<(product: Product, productVariant: ProductVariant) => string>;
+    };
 
-  beforeEach(async () => {
-    // Create mock services with spies
-    mockBasketService = jasmine.createSpyObj('BasketService', [
-      'clearBasketCookie',
-      'isBasketEmpty',
-      'calculateTotalBasketPrice',
-    ]);
-    mockEcommerceEventsService = jasmine.createSpyObj(
-      'EcommerceEventsService',
-      ['sendPurchaseEvent'],
-    );
-    mockProductsService = jasmine.createSpyObj('ProductsService', [
-      'getProductVariantPriceAsCurrency',
-    ]);
+    beforeEach(async () => {
+        // Create mock services with spies
+        mockBasketService = {
+            clearBasketCookie: vi.fn().mockName("BasketService.clearBasketCookie"),
+            isBasketEmpty: vi.fn().mockName("BasketService.isBasketEmpty"),
+            calculateTotalBasketPrice: vi.fn().mockName("BasketService.calculateTotalBasketPrice")
+        };
+        mockEcommerceEventsService = {
+            sendPurchaseEvent: vi.fn().mockName("EcommerceEventsService.sendPurchaseEvent")
+        };
+        mockProductsService = {
+            getProductVariantPriceAsCurrency: vi.fn().mockName("ProductsService.getProductVariantPriceAsCurrency")
+        };
 
-    mockBasketService.isBasketEmpty.and.returnValue(false);
+        mockBasketService.isBasketEmpty.mockReturnValue(false);
 
-    await TestBed.configureTestingModule({
-      declarations: [ConfirmationPageComponent],
-      providers: [
-        {provide: BasketService, useValue: mockBasketService},
-        {provide: EcommerceEventsService, useValue: mockEcommerceEventsService},
-        {provide: ProductsService, useValue: mockProductsService},
-      ],
-    }).compileComponents();
+        await TestBed.configureTestingModule({
+    imports: [ConfirmationPageComponent],
+    providers: [
+        { provide: BasketService, useValue: mockBasketService },
+        { provide: EcommerceEventsService, useValue: mockEcommerceEventsService },
+        { provide: ProductsService, useValue: mockProductsService },
+    ],
+}).compileComponents();
 
-    fixture = TestBed.createComponent(ConfirmationPageComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
+        fixture = TestBed.createComponent(ConfirmationPageComponent);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
-  });
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
 });

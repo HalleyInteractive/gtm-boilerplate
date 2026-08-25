@@ -2,8 +2,8 @@ import { environment } from '../environments/environment';
 
 declare global {
   interface Window {
-    dataLayer: any[];
-    gtag: (...args: any[]) => void;
+    dataLayer: unknown[];
+    gtag: (...args: unknown[]) => void;
   }
 }
 
@@ -51,7 +51,7 @@ export function loadGtmScripts(): void {
     console.warn('⚠️ Google Tag / GTM tracking is running on default configuration because localStorage is disabled/inaccessible in this browser.', e);
   }
 
-  let loadGtag = false;
+  let loadGtag: boolean;
   let scriptDomain = 'https://www.googletagmanager.com';
   let enableSgtmTransport = false;
 
@@ -102,9 +102,9 @@ export function loadGtmScripts(): void {
 
     const configScript = document.createElement('script');
 
-    const configParams: any = {};
+    const configParams: Record<string, unknown> = {};
     if (enableSgtmTransport) {
-      configParams.server_container_url = sgtmEndpointUrl;
+      configParams['server_container_url'] = sgtmEndpointUrl;
     }
 
     const scriptContent = [
@@ -121,9 +121,10 @@ export function loadGtmScripts(): void {
     }
 
   } else {
-    (function (w: any, d: Document, s: string, l: string, i: string) {
-      w[l] = w[l] || [];
-      w[l].push({
+    (function (w: Window, d: Document, s: string, l: string, i: string) {
+      const win = w as unknown as Record<string, unknown[]>;
+      win[l] = win[l] || [];
+      win[l].push({
         'gtm.start': new Date().getTime(),
         event: 'gtm.js'
       });

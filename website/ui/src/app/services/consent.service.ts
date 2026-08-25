@@ -16,11 +16,13 @@
  * limitations under the License.
  */
 
-import { DOCUMENT } from '@angular/common';
-import { Inject, Injectable, Optional } from '@angular/core';
+
+import { Injectable, DOCUMENT, inject } from '@angular/core';
 import { CookieService } from 'ngx-cookie-service';
 import { BehaviorSubject } from 'rxjs';
 import { Consent, ConsentStatus, ConsentUpdate } from '../models/consent';
+
+export type GtagFn = (...args: unknown[]) => void;
 
 /**
  * A service for managing the user's consent with GTM.
@@ -29,6 +31,10 @@ import { Consent, ConsentStatus, ConsentUpdate } from '../models/consent';
   providedIn: 'root',
 })
 export class ConsentService {
+  private cookieService = inject(CookieService);
+  private document = inject<Document>(DOCUMENT);
+  private injectedGtag = inject<GtagFn>('gtag' as never, { optional: true });
+
   // Set the default consent to denied
   private currentConsent: Consent = {
     'ad_storage': ConsentStatus.DENIED,
@@ -39,15 +45,11 @@ export class ConsentService {
   private cookieName = 'consent-cookie';
   private cookieExpiryDays = 365;
 
-  gtag!: Function;
+  gtag!: GtagFn;
   isInitialized = new BehaviorSubject<boolean>(false);
   hasConsentCookie = false;
 
-  constructor(
-    private cookieService: CookieService,
-    @Inject(DOCUMENT) private document: Document,
-    @Optional() @Inject('gtag') private injectedGtag?: Function,
-  ) {
+  constructor() {
     this.initialize();
   }
 
@@ -87,9 +89,9 @@ export class ConsentService {
    * Pull the gTag function from the page and set the service attribute.
    */
   private getGtagFromPage(): void {
-    const defaultView = this.document.defaultView;
-    if (defaultView != null && 'gtag' in defaultView) {
-      this.gtag = defaultView.gtag as Function;
+    const defaultView = this.document.defaultView as (Window & { gtag?: GtagFn }) | null;
+    if (defaultView != null && typeof defaultView.gtag === 'function') {
+      this.gtag = defaultView.gtag;
     }
   }
 

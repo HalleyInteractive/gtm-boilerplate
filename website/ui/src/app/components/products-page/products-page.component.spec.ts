@@ -16,7 +16,9 @@
  * limitations under the License.
  */
 
+import {CUSTOM_ELEMENTS_SCHEMA} from '@angular/core';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
+import {RouterTestingModule} from '@angular/router/testing';
 
 import {ProductsPageComponent} from './products-page.component';
 
@@ -26,7 +28,8 @@ describe('ProductsPageComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ProductsPageComponent],
+      imports: [ProductsPageComponent, RouterTestingModule],
+      schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
   });
 

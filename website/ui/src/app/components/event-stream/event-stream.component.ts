@@ -17,19 +17,21 @@
  * limitations under the License.
  */
 
-import {Component} from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
 import {EcommerceEventsService} from 'src/app/services/ecommerce-events.service';
 
 /**
  * Event Stream Component
  */
 @Component({
-  selector: 'app-event-stream',
-  templateUrl: './event-stream.component.html',
-  styleUrl: './event-stream.component.css',
+    selector: 'app-event-stream',
+    templateUrl: './event-stream.component.html',
+    styleUrl: './event-stream.component.css',
+    changeDetection: ChangeDetectionStrategy.Eager
 })
 export class EventStreamComponent {
-  constructor(private ecommerceEventsService: EcommerceEventsService) {}
+  private ecommerceEventsService = inject(EcommerceEventsService);
+
 
   /**
    * Get all the events that have been sent

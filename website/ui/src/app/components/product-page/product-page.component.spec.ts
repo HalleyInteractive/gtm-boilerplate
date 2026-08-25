@@ -16,76 +16,78 @@
  * limitations under the License.
  */
 
-import {ComponentFixture, TestBed} from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import {ProductPageComponent} from './product-page.component';
-import {BasketService} from 'src/app/services/basket.service';
-import {EcommerceEventsService} from 'src/app/services/ecommerce-events.service';
-import {ProductsService} from 'src/app/services/products.service';
-import {Product, Products} from 'src/app/models/products';
-import {RouterTestingModule} from '@angular/router/testing';
+import type { Mock } from 'vitest';
+import { ProductPageComponent } from './product-page.component';
+import { BasketService } from 'src/app/services/basket.service';
+import { EcommerceEventsService } from 'src/app/services/ecommerce-events.service';
+import { ProductsService } from 'src/app/services/products.service';
+import { Product, ProductVariant, Products } from 'src/app/models/products';
+import { RouterTestingModule } from '@angular/router/testing';
 
 describe('ProductPageComponent', () => {
-  let component: ProductPageComponent;
-  let fixture: ComponentFixture<ProductPageComponent>;
-  let mockBasketService: jasmine.SpyObj<BasketService>;
-  let mockEcommerceEventsService: jasmine.SpyObj<EcommerceEventsService>;
-  let mockProductsService: Partial<ProductsService>;
-  let mockProducts: Products;
-  let mockProduct: Product;
-
-  beforeEach(async () => {
-    mockBasketService = jasmine.createSpyObj(
-      'BasketService',
-      ['updateBasket',]
-    );
-    mockEcommerceEventsService = jasmine.createSpyObj(
-      'EcommerceEventsService',
-      ['sendViewItemEvent',]
-    );
-
-    mockProduct = {
-      'id': '123',
-      'name': 'test product',
-      'description': `test description`,
-      'default_variant': '123_green_m',
-      'variants': {
-        '123_green_m': {
-          'sku': '123_m_green',
-          'name': 'test#green#m',
-          'display_name': 'Green',
-          'price': 10,
-          'size': 'M',
-          'image': 'test-image.png',
-        }
-      }
+    let component: ProductPageComponent;
+    let fixture: ComponentFixture<ProductPageComponent>;
+    let mockBasketService: {
+        updateBasket: Mock<(product: Product, productVariant: ProductVariant, quantity: number) => void>;
     };
-
-    mockProducts = {
-      '123': mockProduct
+    let mockEcommerceEventsService: {
+        sendViewItemEvent: Mock<(product: Product, productVariant: ProductVariant) => void>;
     };
+    let mockProductsService: Partial<ProductsService>;
+    let mockProducts: Products;
+    let mockProduct: Product;
 
-    mockProductsService = { 
-      products: mockProducts
-    };
+    beforeEach(async () => {
+        mockBasketService = {
+            updateBasket: vi.fn().mockName("BasketService.updateBasket")
+        };
+        mockEcommerceEventsService = {
+            sendViewItemEvent: vi.fn().mockName("EcommerceEventsService.sendViewItemEvent")
+        };
 
-    await TestBed.configureTestingModule({
-      declarations: [ ProductPageComponent ],
-      imports: [RouterTestingModule],
-      providers: [
+        mockProduct = {
+            'id': '123',
+            'name': 'test product',
+            'description': `test description`,
+            'default_variant': '123_green_m',
+            'variants': {
+                '123_green_m': {
+                    'sku': '123_m_green',
+                    'name': 'test#green#m',
+                    'display_name': 'Green',
+                    'price': 10,
+                    'size': 'M',
+                    'image': 'test-image.png',
+                }
+            }
+        };
+
+        mockProducts = {
+            '123': mockProduct
+        };
+
+        mockProductsService = {
+            products: mockProducts
+        };
+
+        await TestBed.configureTestingModule({
+    imports: [RouterTestingModule, ProductPageComponent],
+    providers: [
         { provide: BasketService, useValue: mockBasketService },
         { provide: EcommerceEventsService, useValue: mockEcommerceEventsService },
         { provide: ProductsService, useValue: mockProductsService },
-      ]
-    })
-    .compileComponents();
+    ]
+})
+            .compileComponents();
 
-    fixture = TestBed.createComponent(ProductPageComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
+        fixture = TestBed.createComponent(ProductPageComponent);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
-  });
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
 });

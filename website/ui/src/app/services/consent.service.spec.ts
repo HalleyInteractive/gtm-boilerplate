@@ -24,7 +24,7 @@ describe('ConsentService', () => {
   let service: ConsentService;
 
   beforeEach(() => {
-    const mockGtag = () => {};
+    const mockGtag = vi.fn();
 
     TestBed.configureTestingModule({
       providers: [{provide: 'gtag', useValue: mockGtag}],

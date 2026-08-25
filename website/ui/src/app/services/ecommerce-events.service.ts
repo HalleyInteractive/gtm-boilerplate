@@ -20,7 +20,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { js_beautify } from 'js-beautify';
 import { environment } from 'src/environments/environment';
 import {
@@ -38,7 +38,6 @@ import {
 } from '../models/ecommerce-events';
 import { Basket, Product, ProductVariant, Products } from '../models/products';
 import { ProductsService } from './products.service';
-import { isNgTemplate } from '@angular/compiler';
 
 /**
  * Service for sending ecommerce events to Google Tag Manager.
@@ -47,14 +46,12 @@ import { isNgTemplate } from '@angular/compiler';
   providedIn: 'root',
 })
 export class EcommerceEventsService {
+  private productService = inject(ProductsService);
+
   events: string[] = [];
 
-  constructor(
-    private productService: ProductsService
-  ) { }
-
-  private pushToDataLayer(obj: any): void {
-    const w = window as any;
+  private pushToDataLayer(obj: unknown): void {
+    const w = window as Window & { dataLayer?: unknown[] };
     w.dataLayer = w.dataLayer || [];
     w.dataLayer.push(obj);
   }
@@ -697,7 +694,7 @@ export class EcommerceEventsService {
     const options = {
       indent_size: 2,
       space_in_empty_paren: true,
-      brace_style: 'expand' as 'expand',
+      brace_style: 'expand' as const,
     };
     return js_beautify(eventJson, options);
   }

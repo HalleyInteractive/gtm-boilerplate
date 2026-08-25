@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-import {Injectable} from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {Router} from '@angular/router';
 import {CookieService} from 'ngx-cookie-service';
 import {Subject} from 'rxjs';
@@ -37,16 +37,16 @@ import {ProductsService} from './products.service';
   providedIn: 'root',
 })
 export class BasketService {
+  private cookieService = inject(CookieService);
+  private router = inject(Router);
+  private productsService = inject(ProductsService);
+
   basket?: Basket;
   private addToCartSubject = new Subject<boolean>();
   private cookieName = 'basket-cookie';
   private cookieExpiryDays = 365;
 
-  constructor(
-    private cookieService: CookieService,
-    private router: Router,
-    private productsService: ProductsService
-  ) {
+  constructor() {
     this.refreshBasketFromCookie();
   }
 
@@ -97,7 +97,7 @@ export class BasketService {
     let basketProduct: BasketProduct;
     const basket = this.getBasketFromCookie();
 
-    if (!basket.hasOwnProperty(productVariant.sku)) {
+    if (!Object.prototype.hasOwnProperty.call(basket, productVariant.sku)) {
       basketProduct = {
         product,
         productVariant,
