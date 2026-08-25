@@ -1,73 +1,87 @@
 # Google Tag Manager Ecommerce Demo Store
 
-This code provides a sample e-commerce demo store that is set up with Google
-Tag Manager.
+This repository provides a sample e-commerce demo store that is instrumented with Google Tag Manager and Google Analytics 4 (GA4).
 
-It is a predominantly Angular solution, that uses a Flask backend to serve the
-website, so it can be deployed on App Engine.
+It is built as an Angular 22 Single-Page Application (SPA) containerized with NGINX on Alpine Linux, designed for deployment to **Google Cloud Run** with automated CI/CD using **Google Cloud Build** on push to GitHub.
 
-The Angular code sits in the `/ui` subdirectory.
+The Angular frontend source code is located in the `/ui` subdirectory.
 
-## Google Tag Manager
+## Google Tag Manager & Google Analytics Setup
 
-If the solution is to be used with Google Tag Manager, a web container needs to
-be set up in advance of the deployment. After setting this up, make a note of
-the web container ID. This is used with the deployment.
+If the solution is to be used with Google Tag Manager or Google Analytics:
+1. Set up a Web Container in Google Tag Manager (or a GA4 Data Stream).
+2. Note your Web Container ID (e.g. `GTM-XXXXXX`) or Google Tag ID (e.g. `G-XXXXXXXXXX`).
+3. Configure your production tracking IDs in [environment.prod.ts](./ui/src/environments/environment.prod.ts) or dynamically configure them in the live web UI via the bottom-right **Tag Settings** panel.
 
-## Currency
+## Currency & Localization
 
-By default, the project uses `GBP` as the currency. You can override this by
-changing the environment settings in [environment.prod.ts](
-./ui/src/environments/environment.prod.ts).
+By default, the demo store uses `GBP` (£) as currency. You can change currency and locale settings in [environment.prod.ts](./ui/src/environments/environment.prod.ts).
 
-_**Limitation**: [products.service.ts](
-./ui/src/app/services/products.service.ts) declares the example products: the
-prices are hard-coded, and no currency conversion happens. If the currency
-exchange rate is significantly different to the British Pound, these prices
-might seem unusual and would need to be amended._
+---
 
+## Deployment & Automated CI/CD (Google Cloud Run + Cloud Build)
 
-## App Engine Deployment
+### 1. One-Time GCP Infrastructure Setup
 
-1. Create a new Google Cloud Project.
-2. Navigate to [App Engine](https://console.cloud.google.com/appengine) and
-   create an instance.
-3. Open the [environment.prod.ts](./ui/src/environments/environment.prod.ts)
-   file and change the settings accordingly.
-4. Build the angular project by running:
-   ```
-   cd ui
-   npm install -g @angular/cli
-   npm install
-   ng build
-   cd ..
-   ```
-5. Run `gcloud init`
-6. Run `gcloud app deploy`
+Run the automated setup script to enable APIs, create your Artifact Registry Docker repository, and grant Cloud Build necessary deployment permissions:
 
-### Guided Deployment
-Click the Open in Cloud Shell button to open this repository in Google Cloud
-Shell and follow a guided tutorial.
+```bash
+cd website
+bash setup_cloud_run.sh
+```
 
-[![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https%3A%2F%2Fgithub.com%2Fijuric0%2Fgtm-boilerplate&cloudshell_git_branch=new-changes&cloudshell_workspace=.%2Fwebsite&cloudshell_tutorial=tutorial.md)
+### 2. Connect GitHub to Cloud Build (Continuous Deployment)
 
+To automatically deploy new revisions whenever changes are committed and pushed to `main`:
 
+1. Open [Google Cloud Build Triggers](https://console.cloud.google.com/cloud-build/triggers).
+2. Click **Connect Repository** and choose **GitHub (Cloud Build GitHub App)**.
+3. Authenticate and select your repository (`gtm-boilerplate`).
+4. Click **Create Trigger**:
+   - **Name**: `deploy-gtm-boilerplate-on-push`
+   - **Event**: `Push to a branch`
+   - **Source**: `^main$`
+   - **Configuration**: `Cloud Build configuration file (yaml)`
+   - **Location**: `website/cloudbuild.yaml` (or `cloudbuild.yaml`)
+5. Save the trigger.
 
+Every commit to `main` will now automatically build the multi-stage Docker container image, push it to Artifact Registry, and deploy to Cloud Run!
+
+### 3. Manual Local Deployment (Alternative)
+
+If you wish to trigger a direct deployment immediately from your terminal without committing:
+
+```bash
+cd website
+gcloud builds submit --config=cloudbuild.yaml
+```
+
+---
+
+## Local Development
+
+To run the Angular application locally in development mode:
+
+```bash
+cd ui
+npm install
+npm run start
+```
+Navigate to `http://localhost:4200/`.
+
+To build the container locally with Docker:
+
+```bash
+cd website
+docker build -t gtm-boilerplate .
+docker run -p 8080:8080 gtm-boilerplate
+```
+Navigate to `http://localhost:8080/`.
+
+---
 
 ## Disclaimers
 
 __This is not an officially supported Google product.__
 
-Copyright 2024 Google LLC. This solution, including any related sample code or
-data, is made available on an “as is,” “as available,” and “with all faults”
-basis, solely for illustrative purposes, and without warranty or representation
-of any kind. This solution is experimental, unsupported and provided solely for
-your convenience. Your use of it is subject to your agreements with Google, as
-applicable, and may constitute a beta feature as defined under those agreements.
-To the extent that you make any data available to Google in connection with your
-use of the solution, you represent and warrant that you have all necessary and
-appropriate rights, consents and permissions to permit Google to use and process
-that data. By using any portion of this solution, you acknowledge, assume and
-accept all risks, known and unknown, associated with its usage, including with
-respect to your deployment of any portion of this solution in your systems, or
-usage in connection with your business, if at all.
+Copyright 2024 Google LLC. This solution, including any related sample code or data, is made available on an “as is,” “as available,” and “with all faults” basis, solely for illustrative purposes, and without warranty or representation of any kind.

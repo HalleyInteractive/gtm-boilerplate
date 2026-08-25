@@ -2,90 +2,59 @@
 
 ## Setup
 
-Welcome to the guided deployment of the e-commerce website. We will deploy the
-demo site on [Google Cloud App Engine](https://cloud.google.com/appengine).
+Welcome to the guided deployment of the e-commerce website. We will deploy the demo site on **[Google Cloud Run](https://cloud.google.com/run)** using **[Google Cloud Build](https://cloud.google.com/build)**.
 
 ## Cloud Project
 
 To start we need to select the Google Cloud Project to deploy the site in.
 
-We'll be using gcloud to deploy solution on Google Cloud, this SDK should be
-available directly from your Cloud Shell environment.
+We'll be using `gcloud` to deploy the solution on Google Cloud, which is available directly in your Cloud Shell environment.
 
 <walkthrough-project-setup></walkthrough-project-setup>
 
-Click the Cloud Shell icon below to copy the command to your shell, and then run
-it from the shell by pressing Enter/Return. Terraform will pick up the project
-name from the environment variable.
+Run the following command to set your active project ID:
 
 ```bash
 export GOOGLE_CLOUD_PROJECT=<walkthrough-project-id/>
 ```
 
-## Configure Google Cloud Permissions
+## Configure Google Cloud Infrastructure & Permissions
 
-To ensure your App Engine deployment does not fail due to Google Cloud's secure-by-default policies, we need to quickly authorize the default service accounts.
+To enable required Google Cloud APIs (Cloud Run, Cloud Build, Artifact Registry) and configure IAM permissions:
 
-Click the **Cloud Shell arrow button** on the top right of the code box below to automatically run the permissions setup script:
+Click the **Cloud Shell arrow button** on the top right of the code box below to automatically run the setup script:
 
 ```sh
-bash setup_permissions.sh
+bash setup_cloud_run.sh
 ```
 
+## Prepare Tracking & Environment Configuration
 
-## Prepare environment
-
-Google Cloud Project: <walkthrough-project-id/>
-
-Before we deploy the solution let's modify the file that holds the environment
-variables the site needs.
-
-Open <walkthrough-editor-open-file filePath="././ui/src/environments/environment.prod.ts">
-environment.prod.ts</walkthrough-editor-open-file>
-
-Fill in the GTM Web Container ID and change locale settings accordingly.
+Before deploying, you can review and configure your tracking parameters in [environment.prod.ts](./ui/src/environments/environment.prod.ts).
 
 Variable             | Description
 -------------------- | -----------
-currency             | This is the currency used for all products and tagging/conversions
-localCode            | This is used to determine the pricing number format.
-gtmContainerId       | Paste your GTM Web Container ID here (formatted as GTM-XXXXXX)
-googleTagId          | Paste your GA Measurement ID
-sgtmTagServingUrl    | Paste your URL for first-party script serving via sGTM
-sgtmEndpointUrl      | Paste your sGTM endpoint URL
+currency             | Currency code used for products and conversion events (default: `GBP`)
+localCode            | Locale code used for currency formatting (default: `en-GB`)
+gtmContainerId       | Your Google Tag Manager Web Container ID (`GTM-XXXXXX`)
+googleTagId          | Your GA4 Measurement ID (`G-XXXXXXXXXX`)
+sgtmTagServingUrl    | URL for first-party script serving via sGTM
+sgtmEndpointUrl      | Your Server-Side GTM endpoint URL
 
-After that, let's get the deployment started.
+*(Note: Tracking IDs can also be customized dynamically at runtime via the Tag Settings UI panel in the bottom right of the page).*
 
-## Deploying
+## Continuous Deployment via GitHub (Automated on Push)
 
-First we need to build the angular code by running:
+1. Open [Cloud Build Triggers Console](https://console.cloud.google.com/cloud-build/triggers).
+2. Connect your GitHub repository.
+3. Create a trigger that executes `website/cloudbuild.yaml` on pushes to `^main$`.
+
+## Manual Deployment
+
+You can also trigger a deployment directly using Cloud Build:
+
 ```bash
-cd ui
-npm install
-npm run build
-cd ..
+gcloud builds submit --config=cloudbuild.yaml
 ```
 
-Then initialise `gcloud`, making sure you're logged in and have an active
-account selected. If you've already intialised `gcloud` you can skip this step.
-Follow the prompts in the console during the initialisation.
-```bash
-gcloud init
-```
-
-With the next command we'll deploy the website on AppEngine, run the next
-command in the console and follow the prompts during the deployment.
-```bash
-gcloud app deploy
-```
-
-Once the deployment is completed you can use the follow command to describe the
-newly deployed service, showing you the hostname and more details of the
-deployed app.
-```bash
-gcloud app describe
-```
-
-If you want to view your service you can navigate to
-<walkthrough-menu-navigation sectionId="APPENGINE_SECTION">AppEngine</walkthrough-menu-navigation>
-via the menu.
+Once the build completes, the Cloud Run service URL will be printed to your console.
