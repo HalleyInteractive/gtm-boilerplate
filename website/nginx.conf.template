@@ -45,10 +45,11 @@ server {
         proxy_set_header User-Agent $http_user_agent;
         proxy_set_header Referer $http_referer;
 
-        # 5. Forward visitor geolocation data (Passed from CDN/LB or client headers)
-        proxy_set_header X-Forwarded-Country $http_x_forwarded_country;
-        proxy_set_header X-Forwarded-Region $http_x_forwarded_region;
-        proxy_set_header X-Forwarded-CountryRegion $http_x_forwarded_countryregion;
+        # 5. Map native Google Cloud Run (GFE) geolocation headers to expected GTG headers
+        #    GFE automatically attaches X-AppEngine-Country and X-AppEngine-Region to Cloud Run requests
+        proxy_set_header X-Forwarded-Country $http_x_appengine_country;
+        proxy_set_header X-Forwarded-Region $http_x_appengine_region;
+        proxy_set_header X-Forwarded-CountryRegion "$http_x_appengine_country-$http_x_appengine_region";
     }
 
     # Static assets with caching
