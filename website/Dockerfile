@@ -34,10 +34,11 @@ COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 # Copy compiled Angular distribution files
 COPY --from=builder /app/ui/dist/gtm-boilerplate /usr/share/nginx/html
 
-# Default Cloud Run PORT & Measurement Edge Route
+# Default Cloud Run PORT, Measurement Edge Route & GTG Tag ID
 ENV PORT=8080
 ENV MEASUREMENT_PATH=/analytics
-ENV NGINX_ENVSUBST_FILTER="PORT|MEASUREMENT_PATH"
+ENV GTG_TAG_ID=GTM-XXXXX
+ENV NGINX_ENVSUBST_FILTER="PORT|MEASUREMENT_PATH|GTG_TAG_ID"
 
 EXPOSE 8080
 

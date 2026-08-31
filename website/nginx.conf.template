@@ -17,49 +17,38 @@ server {
     gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml application/javascript application/json image/svg+xml;
 
     # =========================================================================
-    # Edge Measurement Routes (Proxy GTM & GA4 via configurable MEASUREMENT_PATH)
+    # Optimized Wildcard Route for Google Tag Gateway (GTG) Manual Proxy
+    # Routes script serving, telemetry, and health check routes to fps.goog
     # =========================================================================
 
-    # GA4 Collection endpoint (regional)
-    location ~* ^${MEASUREMENT_PATH}/g/collect(.*)$ {
-        proxy_pass https://region1.google-analytics.com/g/collect$1$is_args$args;
-        proxy_ssl_server_name on;
-        proxy_ssl_protocols TLSv1.2 TLSv1.3;
-        proxy_set_header Host region1.google-analytics.com;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header User-Agent $http_user_agent;
-        proxy_set_header Referer $http_referer;
-        proxy_buffering off;
+    # Redirect exact measurement path without trailing slash to preserve query parameters
+    location = ${MEASUREMENT_PATH} {
+        return 301 $scheme://$http_host$uri/$is_args$args;
     }
 
-    # Universal Analytics / Standard GA Collection endpoint
-    location ~* ^${MEASUREMENT_PATH}/collect(.*)$ {
-        proxy_pass https://www.google-analytics.com/collect$1$is_args$args;
-        proxy_ssl_server_name on;
-        proxy_ssl_protocols TLSv1.2 TLSv1.3;
-        proxy_set_header Host www.google-analytics.com;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header User-Agent $http_user_agent;
-        proxy_set_header Referer $http_referer;
-        proxy_buffering off;
-    }
+    location ~* ^${MEASUREMENT_PATH}/(.*)$ {
+        # 1. Forward BOTH script serving and data collection to your unique first-party backend
+        proxy_pass https://${GTG_TAG_ID}.fps.goog/$1$is_args$args;
 
-    # Google Tag Manager Script & Dependency proxying
-    location ~* ^${MEASUREMENT_PATH}/?(.*)$ {
-        proxy_pass https://www.googletagmanager.com/$1$is_args$args;
+        # 2. Rewrite Host header so Google knows which container configuration to serve (Critical!)
+        proxy_set_header Host ${GTG_TAG_ID}.fps.goog;
+
+        # 3. Connection & SSL security settings
         proxy_ssl_server_name on;
         proxy_ssl_protocols TLSv1.2 TLSv1.3;
-        proxy_set_header Host www.googletagmanager.com;
+        proxy_buffering off;
+
+        # 4. Forward standard visitor headers
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header User-Agent $http_user_agent;
         proxy_set_header Referer $http_referer;
-        proxy_buffering off;
+
+        # 5. Forward visitor geolocation data (Passed from CDN/LB or client headers)
+        proxy_set_header X-Forwarded-Country $http_x_forwarded_country;
+        proxy_set_header X-Forwarded-Region $http_x_forwarded_region;
+        proxy_set_header X-Forwarded-CountryRegion $http_x_forwarded_countryregion;
     }
 
     # Static assets with caching
