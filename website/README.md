@@ -13,8 +13,8 @@ The Angular frontend source code is located in the `/ui` subdirectory.
 3. Set `gtmContainerId` in [environment.prod.ts](./ui/src/environments/environment.prod.ts) (or [environment.ts](./ui/src/environments/environment.ts)).
 4. **Google Tag Gateway (GTG) Edge Proxy Routing**:
    - The NGINX container acts as a true Google Tag Gateway manual reverse proxy.
-   - All paths under `${MEASUREMENT_PATH}` (default `/analytics`) are routed to `https://${GTG_TAG_ID}.fps.goog/` with the required `Host: ${GTG_TAG_ID}.fps.goog` rewrite.
-   - This single unified route proxies tag script serving (`/analytics/gtm.js`, `/analytics/gtag/js`), telemetry data collection (`/analytics/g/collect`), and GTG health check verification (`/analytics/healthy`).
+   - All paths under `${MEASUREMENT_PATH}` (default `/d4t4`) are routed to `https://${GTG_TAG_ID}.fps.goog/` with the required `Host: ${GTG_TAG_ID}.fps.goog` rewrite, preserving the measurement path.
+   - This single unified route proxies tag script serving (`/d4t4/gtm.js`, `/d4t4/gtag/js`), telemetry data collection (`/d4t4/g/collect`), and GTG health check verification (`/d4t4/healthy`).
    - Visitor geolocation headers (`X-Forwarded-Country`, `X-Forwarded-Region`, and Google's preferred ISO 3166-2 `X-Forwarded-CountryRegion`) and standard proxy headers (`X-Real-IP`, `X-Forwarded-For`, `X-Forwarded-Proto`) are forwarded to ensure Consent Mode geo-rules and GA4 city-level accuracy work correctly.
    - `proxy_buffering off;` is maintained on the proxy route to avoid re-compressing Google's pre-compressed Gzip/Brotli streams on the fly, eliminating CPU and latency overhead.
    - Configurable via environment variables `MEASUREMENT_PATH` and `GTG_TAG_ID` in Cloud Run and `environment.measurementPath` in Angular.

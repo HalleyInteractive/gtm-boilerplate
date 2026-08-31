@@ -27,8 +27,8 @@ server {
     }
 
     location ~* ^${MEASUREMENT_PATH}/(.*)$ {
-        # 1. Forward BOTH script serving and data collection to your unique first-party backend
-        proxy_pass https://${GTG_TAG_ID}.fps.goog/$1$is_args$args;
+        # 1. Forward BOTH script serving and data collection to your unique first-party backend (preserving measurement path)
+        proxy_pass https://${GTG_TAG_ID}.fps.goog$request_uri;
 
         # 2. Rewrite Host header so Google knows which container configuration to serve (Critical!)
         proxy_set_header Host ${GTG_TAG_ID}.fps.goog;

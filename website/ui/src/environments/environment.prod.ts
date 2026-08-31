@@ -26,6 +26,6 @@ export const environment = {
   // The ID of the container in Google Tag Manager, e.g. GTM-XXXXXXXX
   gtmContainerId: 'GTM-KDFCRJM5',
   // The base path or URL used to load GTM scripts and collect data.
-  // Set to a relative edge route (e.g. '/analytics') or full URL (e.g. 'https://www.googletagmanager.com')
-  measurementPath: '/analytics',
+  // Set to a relative edge route (e.g. '/d4t4') or full URL (e.g. 'https://www.googletagmanager.com')
+  measurementPath: '/d4t4',
 };
