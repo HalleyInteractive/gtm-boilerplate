@@ -5,12 +5,62 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
+    # DNS resolver for dynamic proxy_pass
+    resolver 8.8.8.8 8.8.4.4 valid=300s ipv6=off;
+    resolver_timeout 5s;
+
     # Gzip Compression
     gzip on;
     gzip_vary on;
     gzip_min_length 1024;
     gzip_proxied expired no-cache no-store private auth;
     gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml application/javascript application/json image/svg+xml;
+
+    # =========================================================================
+    # Edge Measurement Routes (Proxy GTM & GA4 via configurable MEASUREMENT_PATH)
+    # =========================================================================
+
+    # GA4 Collection endpoint (regional)
+    location ~* ^${MEASUREMENT_PATH}/g/collect(.*)$ {
+        proxy_pass https://region1.google-analytics.com/g/collect$1$is_args$args;
+        proxy_ssl_server_name on;
+        proxy_ssl_protocols TLSv1.2 TLSv1.3;
+        proxy_set_header Host region1.google-analytics.com;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header User-Agent $http_user_agent;
+        proxy_set_header Referer $http_referer;
+        proxy_buffering off;
+    }
+
+    # Universal Analytics / Standard GA Collection endpoint
+    location ~* ^${MEASUREMENT_PATH}/collect(.*)$ {
+        proxy_pass https://www.google-analytics.com/collect$1$is_args$args;
+        proxy_ssl_server_name on;
+        proxy_ssl_protocols TLSv1.2 TLSv1.3;
+        proxy_set_header Host www.google-analytics.com;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header User-Agent $http_user_agent;
+        proxy_set_header Referer $http_referer;
+        proxy_buffering off;
+    }
+
+    # Google Tag Manager Script & Dependency proxying
+    location ~* ^${MEASUREMENT_PATH}/?(.*)$ {
+        proxy_pass https://www.googletagmanager.com/$1$is_args$args;
+        proxy_ssl_server_name on;
+        proxy_ssl_protocols TLSv1.2 TLSv1.3;
+        proxy_set_header Host www.googletagmanager.com;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header User-Agent $http_user_agent;
+        proxy_set_header Referer $http_referer;
+        proxy_buffering off;
+    }
 
     # Static assets with caching
     location ~* \.(?:ico|css|js|gif|jpe?g|png|svg|woff2?|eot|ttf|otf|webmanifest)$ {

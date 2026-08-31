@@ -6,12 +6,16 @@ It is built as an Angular 22 Single-Page Application (SPA) containerized with NG
 
 The Angular frontend source code is located in the `/ui` subdirectory.
 
-## Google Tag Manager & Google Analytics Setup
+## Google Tag Manager Setup & Edge Routing
 
-If the solution is to be used with Google Tag Manager or Google Analytics:
 1. Set up a Web Container in Google Tag Manager (or a GA4 Data Stream).
-2. Note your Web Container ID (e.g. `GTM-XXXXXX`) or Google Tag ID (e.g. `G-XXXXXXXXXX`).
-3. Configure your production tracking IDs in [environment.prod.ts](./ui/src/environments/environment.prod.ts) or dynamically configure them in the live web UI via the bottom-right **Tag Settings** panel.
+2. Note your Web Container ID (e.g. `GTM-XXXXXX`).
+3. Set `gtmContainerId` in [environment.prod.ts](./ui/src/environments/environment.prod.ts) (or [environment.ts](./ui/src/environments/environment.ts)).
+4. **Edge Measurement Routing**:
+   - The NGINX container includes a reverse proxy route (`${MEASUREMENT_PATH}`, default `/analytics`).
+   - Requests to `/analytics/gtm.js` and `/analytics/gtag/js` are proxied to `www.googletagmanager.com`.
+   - Telemetry hits to `/analytics/g/collect` are proxied to `region1.google-analytics.com`, and `/analytics/collect` to `www.google-analytics.com`.
+   - The path is easily configurable via the `MEASUREMENT_PATH` environment variable in Cloud Run and `environment.measurementPath` in the Angular frontend.
 
 ## Currency & Localization
 
