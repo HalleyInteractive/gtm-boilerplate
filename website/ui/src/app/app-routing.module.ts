@@ -25,7 +25,7 @@ import {NewsletterPageComponent} from './components/newsletter-page/newsletter-p
 import {ProductPageComponent} from './components/product-page/product-page.component';
 import {ProductsPageComponent} from './components/products-page/products-page.component';
 
-const storeNameSuffix = '| Demo E-commerce Store';
+const storeNameSuffix = '| Demo E-commerce Store - NGINX';
 const routes: Routes = [
   {
     path: '',
