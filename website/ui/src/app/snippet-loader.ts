@@ -86,7 +86,7 @@ export function loadGtmScripts(): void {
     case 'gtm-default':
     default:
       loadGtag = false;
-      scriptDomain = 'https://www.googletagmanager.com';
+      scriptDomain = sgtmTagServingUrl || 'https://www.googletagmanager.com';
       break;
   }
 
@@ -95,8 +95,10 @@ export function loadGtmScripts(): void {
     libScript.async = true;
     if (isGoogleTagManagerHost(scriptDomain)) {
       libScript.src = `${scriptDomain}/gtag/js?id=${googleTagId}`;
-    } else {
+    } else if (scriptDomain.includes('.js')) {
       libScript.src = `${scriptDomain}`;
+    } else {
+      libScript.src = `${scriptDomain.replace(/\/+$/, '')}/gtag/js?id=${googleTagId}`;
     }
     document.head.insertBefore(libScript, document.head.firstChild);
 
@@ -134,8 +136,10 @@ export function loadGtmScripts(): void {
       j.async = true;
       if (isGoogleTagManagerHost(scriptDomain)) {
         j.src = `${scriptDomain}/gtm.js?id=${i}${dl}`;
-      } else {
+      } else if (scriptDomain.includes('.js')) {
         j.src = `${scriptDomain}/${dl}`;
+      } else {
+        j.src = `${scriptDomain.replace(/\/+$/, '')}/gtm.js?id=${i}${dl}`;
       }
       if (f && f.parentNode) {
         f.parentNode.insertBefore(j, f);
