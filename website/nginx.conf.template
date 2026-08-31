@@ -1,3 +1,45 @@
+# =========================================================================
+# Geolocation header mappings for Google Tag Gateway (GTG)
+# Priority: Incoming X-Forwarded-Country > Cloudflare > CloudFront > GFE > Default fallback
+# =========================================================================
+
+map $http_x_forwarded_country $gtg_country_from_fwd {
+    default $http_x_forwarded_country;
+    ""      $http_cf_ipcountry; # Cloudflare fallback
+}
+
+map $gtg_country_from_fwd $gtg_country_from_cf {
+    default $gtg_country_from_fwd;
+    ""      $http_cloudfront_viewer_country; # AWS CloudFront fallback
+}
+
+map $gtg_country_from_cf $gtg_country_from_cf_viewer {
+    default $gtg_country_from_cf;
+    ""      $http_x_appengine_country; # Google App Engine fallback
+}
+
+map $gtg_country_from_cf_viewer $gtg_country {
+    default $gtg_country_from_cf_viewer;
+    ""      "${DEFAULT_GEO_COUNTRY}"; # Fallback default for direct Cloud Run / testing
+}
+
+map $http_x_forwarded_region $gtg_region_from_fwd {
+    default $http_x_forwarded_region;
+    ""      $http_x_appengine_region;
+}
+
+map $gtg_region_from_fwd $gtg_region {
+    default $gtg_region_from_fwd;
+    ""      $http_cloudfront_viewer_country_region;
+}
+
+map "$gtg_country:$gtg_region" $gtg_country_region {
+    default "$gtg_country-$gtg_region";
+    "~^:"   "";
+    "~:$"   "$gtg_country";
+    ":"     "";
+}
+
 server {
     listen ${PORT};
     server_name localhost;
@@ -45,11 +87,10 @@ server {
         proxy_set_header User-Agent $http_user_agent;
         proxy_set_header Referer $http_referer;
 
-        # 5. Map native Google Cloud Run (GFE) geolocation headers to expected GTG headers
-        #    GFE automatically attaches X-AppEngine-Country and X-AppEngine-Region to Cloud Run requests
-        proxy_set_header X-Forwarded-Country $http_x_appengine_country;
-        proxy_set_header X-Forwarded-Region $http_x_appengine_region;
-        proxy_set_header X-Forwarded-CountryRegion "$http_x_appengine_country-$http_x_appengine_region";
+        # 5. Forward visitor geolocation data (GFE, CDN, or default fallback)
+        proxy_set_header X-Forwarded-Country $gtg_country;
+        proxy_set_header X-Forwarded-Region $gtg_region;
+        proxy_set_header X-Forwarded-CountryRegion $gtg_country_region;
     }
 
     # Static assets with caching
