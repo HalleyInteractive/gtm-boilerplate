@@ -131,12 +131,20 @@ fi
 
 if ! gcloud compute backend-services describe "${CR_BACKEND_NAME}" --global --project="${PROJECT_ID}" --format="value(backends[].group)" 2>/dev/null | grep -q "${CR_NEG_NAME}"; then
   echo "🔗 Attaching Serverless NEG to Backend Service..."
-  gcloud compute backend-services add-backend "${CR_BACKEND_NAME}" \
-    --global \
-    --network-endpoint-group="${CR_NEG_NAME}" \
-    --network-endpoint-group-region="${REGION}" \
-    --project="${PROJECT_ID}" \
-    --quiet
+  for attempt in 1 2 3 4 5; do
+    if gcloud compute backend-services add-backend "${CR_BACKEND_NAME}" \
+      --global \
+      --network-endpoint-group="${CR_NEG_NAME}" \
+      --network-endpoint-group-region="${REGION}" \
+      --project="${PROJECT_ID}" \
+      --quiet; then
+      break
+    fi
+    echo "⏳ Resource busy or updating, waiting 5s before retry ($attempt/5)..."
+    sleep 5
+  done
+else
+  echo "✅ Serverless NEG already attached to Backend Service."
 fi
 
 # -----------------------------------------------------------------------------
@@ -183,56 +191,60 @@ if ! gcloud compute backend-services describe "${GTG_BACKEND_NAME}" --global --p
     --quiet
 else
   echo "✅ GTG Backend Service '${GTG_BACKEND_NAME}' already exists."
-  # Ensure custom Host header is set properly
-  gcloud compute backend-services update "${GTG_BACKEND_NAME}" \
-    --global \
-    --custom-request-header="Host: ${GTG_FQDN}" \
-    --project="${PROJECT_ID}" \
-    --quiet >/dev/null 2>&1 || true
+  # Check if custom request header already matches before issuing an update
+  CURRENT_HEADER=$(gcloud compute backend-services describe "${GTG_BACKEND_NAME}" --global --project="${PROJECT_ID}" --format="value(customRequestHeaders)" 2>/dev/null || echo "")
+  if [[ "${CURRENT_HEADER}" != *"Host: ${GTG_FQDN}"* ]]; then
+    echo "🔧 Updating custom request header on GTG Backend Service..."
+    gcloud compute backend-services update "${GTG_BACKEND_NAME}" \
+      --global \
+      --custom-request-header="Host: ${GTG_FQDN}" \
+      --project="${PROJECT_ID}" \
+      --quiet || true
+    sleep 3
+  fi
 fi
 
 if ! gcloud compute backend-services describe "${GTG_BACKEND_NAME}" --global --project="${PROJECT_ID}" --format="value(backends[].group)" 2>/dev/null | grep -q "${GTG_NEG_NAME}"; then
   echo "🔗 Attaching Internet NEG to GTG Backend Service..."
-  gcloud compute backend-services add-backend "${GTG_BACKEND_NAME}" \
-    --global \
-    --global-network-endpoint-group \
-    --network-endpoint-group="${GTG_NEG_NAME}" \
-    --project="${PROJECT_ID}" \
-    --quiet
+  for attempt in 1 2 3 4 5; do
+    if gcloud compute backend-services add-backend "${GTG_BACKEND_NAME}" \
+      --global \
+      --global-network-endpoint-group \
+      --network-endpoint-group="${GTG_NEG_NAME}" \
+      --project="${PROJECT_ID}" \
+      --quiet; then
+      break
+    fi
+    echo "⏳ Resource busy or updating, waiting 5s before retry ($attempt/5)..."
+    sleep 5
+  done
+else
+  echo "✅ Internet NEG already attached to GTG Backend Service."
 fi
 
 # -----------------------------------------------------------------------------
 # 7. URL Map & Path Matcher (Directing Traffic at the Edge)
 # -----------------------------------------------------------------------------
 URL_MAP_NAME="${PREFIX}-url-map"
-echo "🗺️ Checking URL Map '${URL_MAP_NAME}'..."
+echo "🗺️ Configuring URL Map '${URL_MAP_NAME}' with GTG Path Matcher..."
 
-if ! gcloud compute url-maps describe "${URL_MAP_NAME}" --global --project="${PROJECT_ID}" >/dev/null 2>&1; then
-  echo "✨ Creating URL Map '${URL_MAP_NAME}' with default backend '${CR_BACKEND_NAME}'..."
-  gcloud compute url-maps create "${URL_MAP_NAME}" \
-    --default-service="${CR_BACKEND_NAME}" \
-    --global \
-    --project="${PROJECT_ID}" \
-    --quiet
-
-  echo "🔀 Adding Path Matcher for GTG Measurement Routes (${MEASUREMENT_PATH}/* -> ${GTG_BACKEND_NAME})..."
-  gcloud compute url-maps add-path-matcher "${URL_MAP_NAME}" \
-    --default-service="${CR_BACKEND_NAME}" \
-    --path-matcher-name="gtg-matcher" \
-    --backend-service-path-rules="${MEASUREMENT_PATH}/*=${GTG_BACKEND_NAME},${MEASUREMENT_PATH}=${GTG_BACKEND_NAME}" \
-    --global \
-    --project="${PROJECT_ID}" \
-    --quiet
-else
-  echo "✅ URL Map '${URL_MAP_NAME}' already exists. Updating path rules..."
-  gcloud compute url-maps set-path-matcher "${URL_MAP_NAME}" \
-    --default-service="${CR_BACKEND_NAME}" \
-    --path-matcher-name="gtg-matcher" \
-    --backend-service-path-rules="${MEASUREMENT_PATH}/*=${GTG_BACKEND_NAME},${MEASUREMENT_PATH}=${GTG_BACKEND_NAME}" \
-    --global \
-    --project="${PROJECT_ID}" \
-    --quiet >/dev/null 2>&1 || true
-fi
+gcloud compute url-maps import "${URL_MAP_NAME}" --global --project="${PROJECT_ID}" --quiet --source=- <<EOF
+name: ${URL_MAP_NAME}
+defaultService: https://www.googleapis.com/compute/v1/projects/${PROJECT_ID}/global/backendServices/${CR_BACKEND_NAME}
+hostRules:
+- hosts:
+  - '*'
+  pathMatcher: gtg-matcher
+pathMatchers:
+- defaultService: https://www.googleapis.com/compute/v1/projects/${PROJECT_ID}/global/backendServices/${CR_BACKEND_NAME}
+  name: gtg-matcher
+  pathRules:
+  - paths:
+    - ${MEASUREMENT_PATH}
+    - ${MEASUREMENT_PATH}/*
+    service: https://www.googleapis.com/compute/v1/projects/${PROJECT_ID}/global/backendServices/${GTG_BACKEND_NAME}
+EOF
+echo "✅ URL Map '${URL_MAP_NAME}' configured successfully."
 
 # -----------------------------------------------------------------------------
 # 8. Target HTTPS Proxy & HTTPS Forwarding Rule (Port 443)
