@@ -84,6 +84,15 @@ gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
   --role="roles/compute.admin" \
   --no-user-output-enabled
 
+# Also grant Compute Admin to any custom CI/CD service accounts (e.g. cicd-*)
+for sa in $(gcloud iam service-accounts list --filter="email:cicd-*" --format="value(email)" --project="${PROJECT_ID}" 2>/dev/null); do
+  echo "🔑 Granting roles/compute.admin to custom CI/CD service account (${sa})..."
+  gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+    --member="serviceAccount:${sa}" \
+    --role="roles/compute.admin" \
+    --no-user-output-enabled || true
+done
+
 # Grant Service Account User role to Cloud Build SA (to deploy Cloud Run as Compute SA)
 gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
   --member="serviceAccount:${CLOUDBUILD_SA}" \

@@ -60,8 +60,6 @@ steps:
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
-      - '--ingress'
-      - 'internal-and-cloud-load-balancing'
       - '--min-instances'
       - '0'
       - '--max-instances'

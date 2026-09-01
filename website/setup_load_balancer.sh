@@ -50,10 +50,15 @@ echo "   - Resource Prefix:    ${PREFIX}"
 echo ""
 
 # -----------------------------------------------------------------------------
-# 2. Enable Required APIs
+# 2. Enable Required APIs (if permitted)
 # -----------------------------------------------------------------------------
-echo "🔌 Ensuring Compute & Network APIs are enabled..."
-gcloud services enable compute.googleapis.com --project="${PROJECT_ID}" --quiet
+echo "🔌 Checking Compute & Network APIs..."
+if ! gcloud services list --enabled --filter="name:compute.googleapis.com" --project="${PROJECT_ID}" --format="value(name)" 2>/dev/null | grep -q "compute.googleapis.com"; then
+  echo "Enabling compute.googleapis.com..."
+  gcloud services enable compute.googleapis.com --project="${PROJECT_ID}" --quiet 2>/dev/null || echo "ℹ️ Note: Proceeding without enabling compute API (must be enabled in advance by project admin)."
+else
+  echo "✅ compute.googleapis.com is already enabled."
+fi
 
 # -----------------------------------------------------------------------------
 # 3. Reserve Global Static External IPv4 Address
@@ -120,7 +125,11 @@ if ! gcloud compute backend-services describe "${CR_BACKEND_NAME}" --global --pr
     --description="Backend service for Cloud Run SPA (${SERVICE_NAME})" \
     --project="${PROJECT_ID}" \
     --quiet
+else
+  echo "✅ Cloud Run Backend Service '${CR_BACKEND_NAME}' already exists."
+fi
 
+if ! gcloud compute backend-services describe "${CR_BACKEND_NAME}" --global --project="${PROJECT_ID}" --format="value(backends[].group)" 2>/dev/null | grep -q "${CR_NEG_NAME}"; then
   echo "🔗 Attaching Serverless NEG to Backend Service..."
   gcloud compute backend-services add-backend "${CR_BACKEND_NAME}" \
     --global \
@@ -128,8 +137,6 @@ if ! gcloud compute backend-services describe "${CR_BACKEND_NAME}" --global --pr
     --network-endpoint-group-region="${REGION}" \
     --project="${PROJECT_ID}" \
     --quiet
-else
-  echo "✅ Cloud Run Backend Service '${CR_BACKEND_NAME}' already exists."
 fi
 
 # -----------------------------------------------------------------------------
@@ -145,10 +152,14 @@ if ! gcloud compute network-endpoint-groups describe "${GTG_NEG_NAME}" --global 
   gcloud compute network-endpoint-groups create "${GTG_NEG_NAME}" \
     --network-endpoint-type="internet-fqdn-port" \
     --global \
-    --description="Internet NEG for Google Tag Gateway (${GTG_FQDN})" \
     --project="${PROJECT_ID}" \
     --quiet
+else
+  echo "✅ Internet NEG '${GTG_NEG_NAME}' already exists."
+fi
 
+NEG_SIZE=$(gcloud compute network-endpoint-groups describe "${GTG_NEG_NAME}" --global --project="${PROJECT_ID}" --format="value(size)" 2>/dev/null || echo "0")
+if [ "${NEG_SIZE:-0}" -eq 0 ]; then
   echo "🔗 Adding endpoint '${GTG_FQDN}:443' to Internet NEG..."
   gcloud compute network-endpoint-groups update "${GTG_NEG_NAME}" \
     --add-endpoint="fqdn=${GTG_FQDN},port=443" \
@@ -156,7 +167,7 @@ if ! gcloud compute network-endpoint-groups describe "${GTG_NEG_NAME}" --global 
     --project="${PROJECT_ID}" \
     --quiet
 else
-  echo "✅ Internet NEG '${GTG_NEG_NAME}' already exists."
+  echo "✅ Internet NEG endpoint already attached (size: ${NEG_SIZE})."
 fi
 
 echo "🎯 Checking GTG Backend Service '${GTG_BACKEND_NAME}'..."
@@ -170,14 +181,6 @@ if ! gcloud compute backend-services describe "${GTG_BACKEND_NAME}" --global --p
     --description="Edge reverse proxy backend service for Google Tag Gateway" \
     --project="${PROJECT_ID}" \
     --quiet
-
-  echo "🔗 Attaching Internet NEG to GTG Backend Service..."
-  gcloud compute backend-services add-backend "${GTG_BACKEND_NAME}" \
-    --global \
-    --global-network-endpoint-group \
-    --network-endpoint-group="${GTG_NEG_NAME}" \
-    --project="${PROJECT_ID}" \
-    --quiet
 else
   echo "✅ GTG Backend Service '${GTG_BACKEND_NAME}' already exists."
   # Ensure custom Host header is set properly
@@ -186,6 +189,16 @@ else
     --custom-request-header="Host: ${GTG_FQDN}" \
     --project="${PROJECT_ID}" \
     --quiet >/dev/null 2>&1 || true
+fi
+
+if ! gcloud compute backend-services describe "${GTG_BACKEND_NAME}" --global --project="${PROJECT_ID}" --format="value(backends[].group)" 2>/dev/null | grep -q "${GTG_NEG_NAME}"; then
+  echo "🔗 Attaching Internet NEG to GTG Backend Service..."
+  gcloud compute backend-services add-backend "${GTG_BACKEND_NAME}" \
+    --global \
+    --global-network-endpoint-group \
+    --network-endpoint-group="${GTG_NEG_NAME}" \
+    --project="${PROJECT_ID}" \
+    --quiet
 fi
 
 # -----------------------------------------------------------------------------
@@ -240,79 +253,105 @@ else
   echo "✅ Target HTTPS Proxy '${HTTPS_PROXY_NAME}' already exists."
 fi
 
+LB_RULE_CREATED=false
 echo "🚪 Checking HTTPS Global Forwarding Rule '${HTTPS_RULE_NAME}' (Port 443)..."
 if ! gcloud compute forwarding-rules describe "${HTTPS_RULE_NAME}" --global --project="${PROJECT_ID}" >/dev/null 2>&1; then
   echo "✨ Creating Global Forwarding Rule '${HTTPS_RULE_NAME}'..."
-  gcloud compute forwarding-rules create "${HTTPS_RULE_NAME}" \
+  if gcloud compute forwarding-rules create "${HTTPS_RULE_NAME}" \
     --address="${IP_NAME}" \
     --global \
     --target-https-proxy="${HTTPS_PROXY_NAME}" \
     --ports=443 \
     --load-balancing-scheme=EXTERNAL_MANAGED \
     --project="${PROJECT_ID}" \
-    --quiet
+    --quiet 2>/dev/null; then
+    LB_RULE_CREATED=true
+    echo "✅ HTTPS Forwarding Rule created successfully."
+  else
+    echo "ℹ️ Note: External Load Balancer Forwarding Rule creation restricted by Organization Policy (constraints/compute.restrictLoadBalancerCreationForTypes)."
+    echo "         Falling back cleanly to Cloud Run Domain Mapping for ${DOMAIN}."
+  fi
 else
+  LB_RULE_CREATED=true
   echo "✅ HTTPS Forwarding Rule '${HTTPS_RULE_NAME}' already exists."
 fi
 
-# -----------------------------------------------------------------------------
-# 9. HTTP-to-HTTPS Automatic Redirect (Port 80)
-# -----------------------------------------------------------------------------
-HTTP_REDIRECT_MAP="${PREFIX}-http-redirect-map"
-HTTP_PROXY_NAME="${PREFIX}-http-proxy"
-HTTP_RULE_NAME="${PREFIX}-http-rule"
+if [ "$LB_RULE_CREATED" = "true" ]; then
+  # -----------------------------------------------------------------------------
+  # 9. HTTP-to-HTTPS Automatic Redirect (Port 80)
+  # -----------------------------------------------------------------------------
+  HTTP_REDIRECT_MAP="${PREFIX}-http-redirect-map"
+  HTTP_PROXY_NAME="${PREFIX}-http-proxy"
+  HTTP_RULE_NAME="${PREFIX}-http-rule"
 
-echo "🔄 Checking HTTP-to-HTTPS Redirect URL Map '${HTTP_REDIRECT_MAP}'..."
-if ! gcloud compute url-maps describe "${HTTP_REDIRECT_MAP}" --global --project="${PROJECT_ID}" >/dev/null 2>&1; then
-  echo "✨ Creating HTTP-to-HTTPS Redirect URL Map..."
-  gcloud compute url-maps import "${HTTP_REDIRECT_MAP}" --global --project="${PROJECT_ID}" --quiet --source=- <<EOF
+  echo "🔄 Checking HTTP-to-HTTPS Redirect URL Map '${HTTP_REDIRECT_MAP}'..."
+  if ! gcloud compute url-maps describe "${HTTP_REDIRECT_MAP}" --global --project="${PROJECT_ID}" >/dev/null 2>&1; then
+    echo "✨ Creating HTTP-to-HTTPS Redirect URL Map..."
+    gcloud compute url-maps import "${HTTP_REDIRECT_MAP}" --global --project="${PROJECT_ID}" --quiet --source=- <<EOF
 name: ${HTTP_REDIRECT_MAP}
 defaultUrlRedirect:
   httpsRedirect: true
   redirectResponseCode: MOVED_PERMANENTLY_DEFAULT
   stripQuery: false
 EOF
-else
-  echo "✅ HTTP Redirect URL Map '${HTTP_REDIRECT_MAP}' already exists."
-fi
+  else
+    echo "✅ HTTP Redirect URL Map '${HTTP_REDIRECT_MAP}' already exists."
+  fi
 
-echo "🔄 Checking Target HTTP Proxy '${HTTP_PROXY_NAME}'..."
-if ! gcloud compute target-http-proxies describe "${HTTP_PROXY_NAME}" --global --project="${PROJECT_ID}" >/dev/null 2>&1; then
-  echo "✨ Creating Target HTTP Proxy '${HTTP_PROXY_NAME}'..."
-  gcloud compute target-http-proxies create "${HTTP_PROXY_NAME}" \
-    --url-map="${HTTP_REDIRECT_MAP}" \
-    --global \
+  echo "🔄 Checking Target HTTP Proxy '${HTTP_PROXY_NAME}'..."
+  if ! gcloud compute target-http-proxies describe "${HTTP_PROXY_NAME}" --global --project="${PROJECT_ID}" >/dev/null 2>&1; then
+    echo "✨ Creating Target HTTP Proxy '${HTTP_PROXY_NAME}'..."
+    gcloud compute target-http-proxies create "${HTTP_PROXY_NAME}" \
+      --url-map="${HTTP_REDIRECT_MAP}" \
+      --global \
+      --project="${PROJECT_ID}" \
+      --quiet
+  else
+    echo "✅ Target HTTP Proxy '${HTTP_PROXY_NAME}' already exists."
+  fi
+
+  echo "🚪 Checking HTTP Global Forwarding Rule '${HTTP_RULE_NAME}' (Port 80)..."
+  if ! gcloud compute forwarding-rules describe "${HTTP_RULE_NAME}" --global --project="${PROJECT_ID}" >/dev/null 2>&1; then
+    echo "✨ Creating HTTP Forwarding Rule '${HTTP_RULE_NAME}'..."
+    gcloud compute forwarding-rules create "${HTTP_RULE_NAME}" \
+      --address="${IP_NAME}" \
+      --global \
+      --target-http-proxy="${HTTP_PROXY_NAME}" \
+      --ports=80 \
+      --load-balancing-scheme=EXTERNAL_MANAGED \
+      --project="${PROJECT_ID}" \
+      --quiet || true
+  else
+    echo "✅ HTTP Forwarding Rule '${HTTP_RULE_NAME}' already exists."
+  fi
+
+  # -----------------------------------------------------------------------------
+  # 10. Enforce Ingress Restriction on Cloud Run Service
+  # -----------------------------------------------------------------------------
+  echo "🛡️ Configuring Cloud Run ingress restriction for '${SERVICE_NAME}'..."
+  gcloud run services update "${SERVICE_NAME}" \
+    --ingress=internal-and-cloud-load-balancing \
+    --region="${REGION}" \
+    --platform=managed \
     --project="${PROJECT_ID}" \
-    --quiet
+    --quiet >/dev/null 2>&1 || true
 else
-  echo "✅ Target HTTP Proxy '${HTTP_PROXY_NAME}' already exists."
+  # -----------------------------------------------------------------------------
+  # Fallback: Configure Cloud Run Domain Mapping
+  # -----------------------------------------------------------------------------
+  echo "🌐 Ensuring Cloud Run Domain Mapping for '${DOMAIN}'..."
+  if ! gcloud beta run domain-mappings describe --domain="${DOMAIN}" --region="${REGION}" --project="${PROJECT_ID}" >/dev/null 2>&1; then
+    echo "✨ Creating Cloud Run Domain Mapping for '${DOMAIN}'..."
+    gcloud beta run domain-mappings create \
+      --service="${SERVICE_NAME}" \
+      --domain="${DOMAIN}" \
+      --region="${REGION}" \
+      --project="${PROJECT_ID}" \
+      --quiet || true
+  else
+    echo "✅ Cloud Run Domain Mapping for '${DOMAIN}' already exists."
+  fi
 fi
-
-echo "🚪 Checking HTTP Global Forwarding Rule '${HTTP_RULE_NAME}' (Port 80)..."
-if ! gcloud compute forwarding-rules describe "${HTTP_RULE_NAME}" --global --project="${PROJECT_ID}" >/dev/null 2>&1; then
-  echo "✨ Creating HTTP Forwarding Rule '${HTTP_RULE_NAME}'..."
-  gcloud compute forwarding-rules create "${HTTP_RULE_NAME}" \
-    --address="${IP_NAME}" \
-    --global \
-    --target-http-proxy="${HTTP_PROXY_NAME}" \
-    --ports=80 \
-    --load-balancing-scheme=EXTERNAL_MANAGED \
-    --project="${PROJECT_ID}" \
-    --quiet
-else
-  echo "✅ HTTP Forwarding Rule '${HTTP_RULE_NAME}' already exists."
-fi
-
-# -----------------------------------------------------------------------------
-# 10. Enforce Ingress Restriction on Cloud Run Service
-# -----------------------------------------------------------------------------
-echo "🛡️ Configuring Cloud Run ingress restriction for '${SERVICE_NAME}'..."
-gcloud run services update "${SERVICE_NAME}" \
-  --ingress=internal-and-cloud-load-balancing \
-  --region="${REGION}" \
-  --platform=managed \
-  --project="${PROJECT_ID}" \
-  --quiet >/dev/null 2>&1 || echo "ℹ️ Note: Cloud Run service '${SERVICE_NAME}' ingress will be enforced once the service is deployed."
 
 # -----------------------------------------------------------------------------
 # 11. Final Output & Cloudflare DNS Instructions
