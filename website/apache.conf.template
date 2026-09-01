@@ -28,9 +28,14 @@ Listen ${PORT}
     </IfModule>
 
     # =========================================================================
-    # Geolocation header mappings for Google Tag Gateway (GTG)
+    # Client IP and Geolocation header mappings for Google Tag Gateway (GTG)
     # Priority: Incoming X-Forwarded-Country > Cloudflare > CloudFront > GAE > Default fallback
     # =========================================================================
+
+    # Client IP fallback priority chain: REMOTE_ADDR -> X-Forwarded-For -> CF-Connecting-IP
+    SetEnvIf REMOTE_ADDR "^(.+)$" GTG_CLIENT_IP=$1
+    SetEnvIf X-Forwarded-For "^([^,]+)" GTG_CLIENT_IP=$1
+    SetEnvIf CF-Connecting-IP "^(.+)$" GTG_CLIENT_IP=$1
 
     # Default fallback country for direct Cloud Run / local testing
     SetEnv GTG_COUNTRY "${DEFAULT_GEO_COUNTRY}"
@@ -50,12 +55,14 @@ Listen ${PORT}
     # SSL & Reverse Proxy Settings
     # =========================================================================
     SSLProxyEngine On
+    SSLProxyProtocol all -SSLv3 -TLSv1 -TLSv1.1
     SSLProxyVerify none
     SSLProxyCheckPeerCN off
     SSLProxyCheckPeerName off
     SSLProxyCheckPeerExpire off
     ProxyPreserveHost Off
     ProxyRequests Off
+    ProxyAddHeaders On
     ProxyIOBufferSize 65536
 
     # =========================================================================
@@ -70,14 +77,18 @@ Listen ${PORT}
 
     <Location "${MEASUREMENT_PATH}/">
         # 1. Forward BOTH script serving and data collection to unique first-party backend (preserving measurement path)
-        ProxyPass "https://${GTG_TAG_ID}.fps.goog${MEASUREMENT_PATH}/"
+        # responsefieldsize=131072 expands upstream response header buffer from default 8KB to 128KB (critical for GTM x-encrypted-debug-headers)
+        # disablereuse=On prevents reusing stale SSL connections closed by Google backend
+        # retry=0 prevents Apache from penalizing the worker with a 60s timeout if an upstream error occurs
+        ProxyPass "https://${GTG_TAG_ID}.fps.goog${MEASUREMENT_PATH}/" responsefieldsize=131072 disablereuse=On retry=0
         ProxyPassReverse "https://${GTG_TAG_ID}.fps.goog${MEASUREMENT_PATH}/"
 
         # 2. Rewrite Host header so Google knows which container configuration to serve (Critical!)
         RequestHeader set Host "${GTG_TAG_ID}.fps.goog"
 
         # 3. Forward standard visitor headers
-        RequestHeader set X-Real-IP "%{REMOTE_ADDR}s"
+        RequestHeader set X-Real-IP "%{GTG_CLIENT_IP}e" "expr=-n reqenv('GTG_CLIENT_IP')"
+        RequestHeader set X-Real-IP "%{REMOTE_ADDR}e" "expr=-z reqenv('GTG_CLIENT_IP')"
         RequestHeader set X-Forwarded-Proto "https"
 
         # 4. Forward visitor geolocation data (GFE, CDN, or default fallback)
@@ -110,6 +121,15 @@ Listen ${PORT}
         RewriteCond %{REQUEST_FILENAME} !-f
         RewriteCond %{REQUEST_FILENAME} !-d
         RewriteRule ^ index.html [L]
+
+        # Static assets with caching (6 months)
+        <FilesMatch "\.(?:ico|css|js|gif|jpe?g|png|svg|woff2?|eot|ttf|otf|webmanifest)$">
+            <IfModule mod_expires.c>
+                ExpiresActive On
+                ExpiresDefault "access plus 6 months"
+            </IfModule>
+            Header set Cache-Control "public, max-age=15552000, immutable"
+        </FilesMatch>
     </Directory>
 
     # Health check endpoint
@@ -122,15 +142,6 @@ Listen ${PORT}
     <Location "/">
         Header set Cache-Control "no-cache, no-store, must-revalidate"
     </Location>
-
-    # Static assets with caching (6 months)
-    <FilesMatch "\.(?:ico|css|js|gif|jpe?g|png|svg|woff2?|eot|ttf|otf|webmanifest)$">
-        <IfModule mod_expires.c>
-            ExpiresActive On
-            ExpiresDefault "access plus 6 months"
-        </IfModule>
-        Header set Cache-Control "public, max-age=15552000, immutable"
-    </FilesMatch>
 
     # Error page
     ErrorDocument 500 /50x.html
