@@ -226,9 +226,12 @@ fi
 # 7. URL Map & Path Matcher (Directing Traffic at the Edge)
 # -----------------------------------------------------------------------------
 URL_MAP_NAME="${PREFIX}-url-map"
-echo "🗺️ Configuring URL Map '${URL_MAP_NAME}' with GTG Path Matcher..."
+echo "🗺️ Checking URL Map '${URL_MAP_NAME}'..."
 
-gcloud compute url-maps import "${URL_MAP_NAME}" --global --project="${PROJECT_ID}" --quiet --source=- <<EOF
+if ! gcloud compute url-maps describe "${URL_MAP_NAME}" --global --project="${PROJECT_ID}" --format="value(pathMatchers[].name)" 2>/dev/null | grep -q "gtg-matcher"; then
+  echo "✨ Configuring URL Map '${URL_MAP_NAME}' with GTG Path Matcher..."
+  for attempt in 1 2 3 4 5; do
+    if gcloud compute url-maps import "${URL_MAP_NAME}" --global --project="${PROJECT_ID}" --quiet --source=- <<EOF
 name: ${URL_MAP_NAME}
 defaultService: https://www.googleapis.com/compute/v1/projects/${PROJECT_ID}/global/backendServices/${CR_BACKEND_NAME}
 hostRules:
@@ -244,7 +247,16 @@ pathMatchers:
     - ${MEASUREMENT_PATH}/*
     service: https://www.googleapis.com/compute/v1/projects/${PROJECT_ID}/global/backendServices/${GTG_BACKEND_NAME}
 EOF
-echo "✅ URL Map '${URL_MAP_NAME}' configured successfully."
+    then
+      echo "✅ URL Map '${URL_MAP_NAME}' configured successfully."
+      break
+    fi
+    echo "⏳ Resource busy, waiting 5s before retry ($attempt/5)..."
+    sleep 5
+  done
+else
+  echo "✅ URL Map '${URL_MAP_NAME}' already configured with GTG path matcher."
+fi
 
 # -----------------------------------------------------------------------------
 # 8. Target HTTPS Proxy & HTTPS Forwarding Rule (Port 443)
