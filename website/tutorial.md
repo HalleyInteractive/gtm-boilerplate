@@ -36,12 +36,8 @@ Variable             | Description
 -------------------- | -----------
 currency             | Currency code used for products and conversion events (default: `GBP`)
 localCode            | Locale code used for currency formatting (default: `en-GB`)
-gtmContainerId       | Your Google Tag Manager Web Container ID (`GTM-XXXXXX`)
-googleTagId          | Your GA4 Measurement ID (`G-XXXXXXXXXX`)
-sgtmTagServingUrl    | URL for first-party script serving via sGTM
-sgtmEndpointUrl      | Your Server-Side GTM endpoint URL
-
-*(Note: Tracking IDs can also be customized dynamically at runtime via the Tag Settings UI panel in the bottom right of the page).*
+gtmContainerId       | Your Google Tag Manager Web Container ID (`GTM-XXXXXX` / `GTM-KDFCRJM5`)
+measurementPath      | Base path for Google Tag Gateway edge proxy routing (default: `/d4t4`)
 
 ## Continuous Deployment via GitHub (Automated on Push)
 
