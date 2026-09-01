@@ -10,6 +10,10 @@ Listen ${PORT}
     ServerAdmin webmaster@localhost
     DocumentRoot "/usr/local/apache2/htdocs"
 
+    # Preserve client Host header and HTTPS scheme in redirects behind Cloud Run GFE proxy
+    UseCanonicalName Off
+    SetEnvIf X-Forwarded-Proto "https" HTTPS=on
+
     # Client request header buffers for large cookies / debug payloads
     LimitRequestFieldSize 65536
     LimitRequestLine 16384
