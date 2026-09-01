@@ -16,7 +16,7 @@
 
 substitutions:
   _REGION: 'europe-west4'
-  _SERVICE_NAME: 'gtm-boilerplate-nginx'
+  _SERVICE_NAME: 'gtm-boilerplate-apache'
   _AR_REPO_NAME: 'gtm-boilerplate-repo'
   _MEASUREMENT_PATH: '/d4t4'
   _GTG_TAG_ID: 'GTM-KDFCRJM5'

@@ -34,14 +34,16 @@ echo "👤 Active User Account : ${USER_EMAIL}"
 
 # 2. Configurable deployment settings
 REGION=${GCP_REGION:-"europe-west4"}
-SERVICE_NAME=${CLOUD_RUN_SERVICE:-"gtm-boilerplate"}
+SERVICE_NAME=${CLOUD_RUN_SERVICE:-"gtm-boilerplate-apache"}
 AR_REPO_NAME=${ARTIFACT_REPO:-"gtm-boilerplate-repo"}
+DOMAIN_NAME=${CUSTOM_DOMAIN:-"apache.nielsoverwijn.dev"}
 
 echo ""
 echo "⚙️ Deployment Configuration:"
 echo "   - Region:            ${REGION}"
 echo "   - Cloud Run Service: ${SERVICE_NAME}"
 echo "   - Artifact Registry: ${AR_REPO_NAME}"
+echo "   - Custom Domain:     ${DOMAIN_NAME}"
 echo ""
 
 # 3. Enable Required Google Cloud APIs
@@ -97,8 +99,40 @@ if [ -n "${PROJECT_NUM}" ]; then
     --no-user-output-enabled || true
 fi
 
+# 6. Configure Cloud Run Custom Domain Mapping for apache.nielsoverwijn.dev
+echo ""
+echo "🌐 Checking Cloud Run Domain Mapping for ${DOMAIN_NAME}..."
+if gcloud beta run domain-mappings describe --domain="${DOMAIN_NAME}" --region="${REGION}" --project="${PROJECT_ID}" >/dev/null 2>&1; then
+  echo "✅ Domain mapping for ${DOMAIN_NAME} already exists."
+else
+  echo "✨ Creating Cloud Run domain mapping for ${DOMAIN_NAME} -> ${SERVICE_NAME}..."
+  if gcloud run services describe "${SERVICE_NAME}" --region="${REGION}" --project="${PROJECT_ID}" >/dev/null 2>&1; then
+    gcloud beta run domain-mappings create \
+      --service="${SERVICE_NAME}" \
+      --domain="${DOMAIN_NAME}" \
+      --region="${REGION}" \
+      --project="${PROJECT_ID}" || true
+  else
+    echo "ℹ️ Cloud Run service '${SERVICE_NAME}' is not deployed yet."
+    echo "   Once deployed, run this command to map your subdomain:"
+    echo "   gcloud beta run domain-mappings create --service=${SERVICE_NAME} --domain=${DOMAIN_NAME} --region=${REGION}"
+  fi
+fi
+
+if gcloud beta run domain-mappings describe --domain="${DOMAIN_NAME}" --region="${REGION}" --project="${PROJECT_ID}" >/dev/null 2>&1; then
+  echo ""
+  echo "📋 Required DNS Records for ${DOMAIN_NAME}:"
+  gcloud beta run domain-mappings describe --domain="${DOMAIN_NAME}" --region="${REGION}" --project="${PROJECT_ID}" --format="table(resourceRecords[].type, resourceRecords[].name, resourceRecords[].rrdata)" || true
+else
+  echo ""
+  echo "📋 Standard DNS CNAME Record for ${DOMAIN_NAME}:"
+  echo "   Type:  CNAME"
+  echo "   Name:  apache"
+  echo "   Value: ghs.googlehosted.com."
+fi
+
 echo "=========================================================="
-echo "✅ GCP Infrastructure & IAM Permissions configured!"
+echo "✅ GCP Infrastructure, IAM Permissions & Domain Mapping configured!"
 echo "=========================================================="
 echo ""
 echo "🔗 Next Step: Connect your GitHub Repository to Cloud Build Trigger:"
@@ -107,9 +141,9 @@ echo "      https://console.cloud.google.com/cloud-build/triggers/connect?projec
 echo "   2. Select 'GitHub (Cloud Build GitHub App)'"
 echo "   3. Authenticate and select your repository: gtm-boilerplate"
 echo "   4. Create a trigger:"
-echo "      - Name: deploy-gtm-boilerplate-on-push"
+echo "      - Name: deploy-gtm-boilerplate-apache-on-push"
 echo "      - Event: Push to a branch"
-echo "      - Branch: ^main$"
+echo "      - Branch: ^apache$"
 echo "      - Configuration: Cloud Build configuration file (yaml)"
 echo "      - Location: website/cloudbuild.yaml (or cloudbuild.yaml)"
 echo ""

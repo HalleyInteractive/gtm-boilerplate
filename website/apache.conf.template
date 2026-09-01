@@ -1,0 +1,140 @@
+# =========================================================================
+# Apache HTTP Server Configuration Template for Google Tag Gateway (GTG)
+# Priority: Incoming X-Forwarded-Country > Cloudflare > CloudFront > GAE > Default fallback
+# =========================================================================
+
+Listen ${PORT}
+
+<VirtualHost *:${PORT}>
+    ServerName localhost
+    ServerAdmin webmaster@localhost
+    DocumentRoot "/usr/local/apache2/htdocs"
+
+    # Client request header buffers for large cookies / debug payloads
+    LimitRequestFieldSize 65536
+    LimitRequestLine 16384
+
+    # Gzip / Deflate Compression
+    <IfModule mod_deflate.c>
+        AddOutputFilterByType DEFLATE text/plain text/html text/xml text/css text/javascript
+        AddOutputFilterByType DEFLATE application/xml application/xhtml+xml application/rss+xml
+        AddOutputFilterByType DEFLATE application/javascript application/x-javascript application/json
+        AddOutputFilterByType DEFLATE image/svg+xml
+        DeflateCompressionLevel 6
+    </IfModule>
+
+    # =========================================================================
+    # Geolocation header mappings for Google Tag Gateway (GTG)
+    # Priority: Incoming X-Forwarded-Country > Cloudflare > CloudFront > GAE > Default fallback
+    # =========================================================================
+
+    # Default fallback country for direct Cloud Run / local testing
+    SetEnv GTG_COUNTRY "${DEFAULT_GEO_COUNTRY}"
+
+    # Country fallback priority chain: GAE -> CloudFront -> Cloudflare -> Incoming X-Forwarded-Country
+    SetEnvIf X-AppEngine-Country "^([A-Za-z0-9]+)$" GTG_COUNTRY=$1
+    SetEnvIf CloudFront-Viewer-Country "^([A-Za-z0-9]+)$" GTG_COUNTRY=$1
+    SetEnvIf CF-IPCountry "^([A-Za-z0-9]+)$" GTG_COUNTRY=$1
+    SetEnvIf X-Forwarded-Country "^([A-Za-z0-9]+)$" GTG_COUNTRY=$1
+
+    # Region fallback priority chain: CloudFront -> GAE -> Incoming X-Forwarded-Region
+    SetEnvIf CloudFront-Viewer-Country-Region "^([A-Za-z0-9_-]+)$" GTG_REGION=$1
+    SetEnvIf X-AppEngine-Region "^([A-Za-z0-9_-]+)$" GTG_REGION=$1
+    SetEnvIf X-Forwarded-Region "^([A-Za-z0-9_-]+)$" GTG_REGION=$1
+
+    # =========================================================================
+    # SSL & Reverse Proxy Settings
+    # =========================================================================
+    SSLProxyEngine On
+    SSLProxyVerify none
+    SSLProxyCheckPeerCN off
+    SSLProxyCheckPeerName off
+    SSLProxyCheckPeerExpire off
+    ProxyPreserveHost Off
+    ProxyRequests Off
+    ProxyIOBufferSize 65536
+
+    # =========================================================================
+    # Google Tag Gateway (GTG) Manual Proxy Routes
+    # =========================================================================
+
+    # RewriteEngine for redirects and SPA routing
+    RewriteEngine On
+
+    # Redirect exact measurement path without trailing slash to preserve query parameters
+    RewriteRule ^${MEASUREMENT_PATH}$ ${MEASUREMENT_PATH}/ [R=301,L,QSA]
+
+    <Location "${MEASUREMENT_PATH}/">
+        # 1. Forward BOTH script serving and data collection to unique first-party backend (preserving measurement path)
+        ProxyPass "https://${GTG_TAG_ID}.fps.goog${MEASUREMENT_PATH}/"
+        ProxyPassReverse "https://${GTG_TAG_ID}.fps.goog${MEASUREMENT_PATH}/"
+
+        # 2. Rewrite Host header so Google knows which container configuration to serve (Critical!)
+        RequestHeader set Host "${GTG_TAG_ID}.fps.goog"
+
+        # 3. Forward standard visitor headers
+        RequestHeader set X-Real-IP "%{REMOTE_ADDR}s"
+        RequestHeader set X-Forwarded-Proto "https"
+
+        # 4. Forward visitor geolocation data (GFE, CDN, or default fallback)
+        RequestHeader set X-Forwarded-Country "%{GTG_COUNTRY}e" "expr=-n reqenv('GTG_COUNTRY')"
+        RequestHeader set X-Forwarded-Region "%{GTG_REGION}e" "expr=-n reqenv('GTG_REGION')"
+        RequestHeader set X-Forwarded-CountryRegion "%{GTG_COUNTRY}e-%{GTG_REGION}e" "expr=-n reqenv('GTG_COUNTRY') && -n reqenv('GTG_REGION')"
+        RequestHeader set X-Forwarded-CountryRegion "%{GTG_COUNTRY}e" "expr=-n reqenv('GTG_COUNTRY') && -z reqenv('GTG_REGION')"
+    </Location>
+
+    # =========================================================================
+    # Static Assets & SPA Routing
+    # =========================================================================
+
+    <Directory "/usr/local/apache2/htdocs">
+        Options -Indexes +FollowSymLinks
+        AllowOverride None
+        Require all granted
+
+        RewriteEngine On
+        RewriteBase /
+
+        # Health check pass-through
+        RewriteRule ^healthz$ - [L]
+
+        # Pass-through measurement path for mod_proxy
+        RewriteCond %{REQUEST_URI} ^${MEASUREMENT_PATH}
+        RewriteRule .* - [L]
+
+        # SPA routing - fallback all non-file routes to index.html
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteCond %{REQUEST_FILENAME} !-d
+        RewriteRule ^ index.html [L]
+    </Directory>
+
+    # Health check endpoint
+    <Location "/healthz">
+        Header set Content-Type "text/plain"
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+    </Location>
+
+    # SPA index.html caching control
+    <Location "/">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+    </Location>
+
+    # Static assets with caching (6 months)
+    <FilesMatch "\.(?:ico|css|js|gif|jpe?g|png|svg|woff2?|eot|ttf|otf|webmanifest)$">
+        <IfModule mod_expires.c>
+            ExpiresActive On
+            ExpiresDefault "access plus 6 months"
+        </IfModule>
+        Header set Cache-Control "public, max-age=15552000, immutable"
+    </FilesMatch>
+
+    # Error page
+    ErrorDocument 500 /50x.html
+    ErrorDocument 502 /50x.html
+    ErrorDocument 503 /50x.html
+    ErrorDocument 504 /50x.html
+
+    # Logging
+    ErrorLog /proc/self/fd/2
+    CustomLog /proc/self/fd/1 combined
+</VirtualHost>

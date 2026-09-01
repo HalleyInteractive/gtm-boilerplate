@@ -25,22 +25,47 @@ RUN npm install
 COPY ui/ ./
 RUN npm run build
 
-# Stage 2: Production Web Server with NGINX Alpine
-FROM nginx:alpine
+# Stage 2: Production Web Server with Apache HTTP Server (Debian-based)
+FROM httpd:2.4
 
-# Copy dynamic NGINX configuration template ($PORT substitution supported natively)
-COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+# Install gettext-base for envsubst
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gettext-base && \
+    rm -rf /var/lib/apt/lists/*
+
+# Enable required Apache modules and virtual host inclusion in httpd.conf
+RUN sed -i \
+    -e 's/^#\(LoadModule .*mod_proxy.so\)/\1/' \
+    -e 's/^#\(LoadModule .*mod_proxy_http.so\)/\1/' \
+    -e 's/^#\(LoadModule .*mod_ssl.so\)/\1/' \
+    -e 's/^#\(LoadModule .*mod_socache_shmcb.so\)/\1/' \
+    -e 's/^#\(LoadModule .*mod_rewrite.so\)/\1/' \
+    -e 's/^#\(LoadModule .*mod_headers.so\)/\1/' \
+    -e 's/^#\(LoadModule .*mod_deflate.so\)/\1/' \
+    -e 's/^#\(LoadModule .*mod_expires.so\)/\1/' \
+    -e 's/^#\(LoadModule .*mod_setenvif.so\)/\1/' \
+    -e 's/^Listen 80/#Listen 80/' \
+    /usr/local/apache2/conf/httpd.conf && \
+    echo "Include conf/extra/gtm-boilerplate.conf" >> /usr/local/apache2/conf/httpd.conf
+
+# Copy Apache configuration template and entrypoint script
+COPY apache.conf.template /usr/local/apache2/conf/extra/apache.conf.template
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Copy error page
+COPY 50x.html /usr/local/apache2/htdocs/50x.html
 
 # Copy compiled Angular distribution files
-COPY --from=builder /app/ui/dist/gtm-boilerplate /usr/share/nginx/html
+COPY --from=builder /app/ui/dist/gtm-boilerplate /usr/local/apache2/htdocs
 
 # Default Cloud Run PORT, Measurement Edge Route, GTG Tag ID & Geolocation fallback
 ENV PORT=8080
 ENV MEASUREMENT_PATH=/d4t4
 ENV GTG_TAG_ID=GTM-KDFCRJM5
 ENV DEFAULT_GEO_COUNTRY=NL
-ENV NGINX_ENVSUBST_FILTER="PORT|MEASUREMENT_PATH|GTG_TAG_ID|DEFAULT_GEO_COUNTRY"
 
 EXPOSE 8080
 
-CMD ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["httpd-foreground"]
