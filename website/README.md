@@ -16,8 +16,8 @@ The Angular frontend source code is located in the `/ui` subdirectory.
    - All paths under `${MEASUREMENT_PATH}` (default `/d4t4`) are routed to `https://${GTG_TAG_ID}.fps.goog/` with the required `Host: ${GTG_TAG_ID}.fps.goog` rewrite, preserving the measurement path.
    - This single unified route proxies tag script serving (`/d4t4/gtm.js`, `/d4t4/gtag/js`), telemetry data collection (`/d4t4/g/collect`), and GTG health check verification (`/d4t4/healthy`).
    - Visitor geolocation headers (`X-Forwarded-Country`, `X-Forwarded-Region`, and Google's preferred ISO 3166-2 `X-Forwarded-CountryRegion`, mapped from Google Cloud Run's native GFE `X-AppEngine-Country` and `X-AppEngine-Region` headers) and standard proxy headers (`X-Real-IP`, `X-Forwarded-For`, `X-Forwarded-Proto`) are forwarded to ensure Consent Mode geo-rules and GA4 city-level accuracy work correctly.
-   - Both tag script serving and the GTG health checks (`/d4t4/healthy` and `?validate_geo=healthy`) are verified to return `ok`.
    - `proxy_buffering off;` is maintained on the proxy route to avoid re-compressing Google's pre-compressed Gzip/Brotli streams on the fly, eliminating CPU and latency overhead.
+   - Upstream response header buffer sizes (`proxy_buffer_size 128k;`) are configured to support Google's large debug headers (`x-encrypted-debug-headers`) and multiple `Set-Cookie` headers, preventing 502 Bad Gateway errors during Tag Assistant sessions.
    - Configurable via environment variables `MEASUREMENT_PATH` and `GTG_TAG_ID` in Cloud Run and `environment.measurementPath` in Angular.
 
 ## Currency & Localization

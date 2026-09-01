@@ -44,6 +44,10 @@ server {
     listen ${PORT};
     server_name localhost;
 
+    # Client request header buffers for large cookies / debug payloads
+    client_header_buffer_size 16k;
+    large_client_header_buffers 4 64k;
+
     root /usr/share/nginx/html;
     index index.html;
 
@@ -79,6 +83,12 @@ server {
         proxy_ssl_server_name on;
         proxy_ssl_protocols TLSv1.2 TLSv1.3;
         proxy_buffering off;
+
+        # Upstream response header buffers (Critical for GTM debug mode & encrypted headers)
+        # Prevents 502 "upstream sent too big header while reading response header from upstream"
+        proxy_buffer_size 128k;
+        proxy_buffers 4 256k;
+        proxy_busy_buffers_size 256k;
 
         # 4. Forward standard visitor headers
         proxy_set_header X-Real-IP $remote_addr;
