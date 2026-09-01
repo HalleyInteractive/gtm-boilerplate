@@ -1,0 +1,7 @@
+project_id       = "your-gcp-project-id"
+region           = "europe-west4"
+service_name     = "gtm-boilerplate-gcp"
+domain           = "gcp.nielsoverwijn.dev"
+gtg_tag_id       = "GTM-KDFCRJM5"
+measurement_path = "/d4t4"
+resource_prefix  = "gtm-gcp"

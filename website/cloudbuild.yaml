@@ -13,10 +13,12 @@
 # limitations under the License.
 
 # Cloud Build configuration to build and deploy GTM Boilerplate to Google Cloud Run
+# and configure GCP External Application Load Balancer with GTG Internet NEG reverse proxy.
 
 substitutions:
   _REGION: 'europe-west4'
-  _SERVICE_NAME: 'gtm-boilerplate-nginx'
+  _SERVICE_NAME: 'gtm-boilerplate-gcp'
+  _DOMAIN: 'gcp.nielsoverwijn.dev'
   _AR_REPO_NAME: 'gtm-boilerplate-repo'
   _MEASUREMENT_PATH: '/d4t4'
   _GTG_TAG_ID: 'GTM-KDFCRJM5'
@@ -44,7 +46,7 @@ steps:
       - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/${_SERVICE_NAME}'
     id: 'push-image'
 
-  # 3. Deploy container image to Google Cloud Run
+  # 3. Deploy container image to Google Cloud Run (locked to Cloud Load Balancer ingress)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'gcloud'
     args:
@@ -58,6 +60,8 @@ steps:
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
+      - '--ingress'
+      - 'internal-and-cloud-load-balancing'
       - '--min-instances'
       - '0'
       - '--max-instances'
@@ -67,6 +71,20 @@ steps:
       - '--update-env-vars'
       - 'MEASUREMENT_PATH=${_MEASUREMENT_PATH},GTG_TAG_ID=${_GTG_TAG_ID},DEFAULT_GEO_COUNTRY=${_DEFAULT_GEO_COUNTRY}'
     id: 'deploy-cloud-run'
+
+  # 4. Provision / Update GCP External Application Load Balancer with GTG Internet NEG Reverse Proxy
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - 'website/setup_load_balancer.sh'
+    env:
+      - 'GOOGLE_CLOUD_PROJECT=${PROJECT_ID}'
+      - 'GCP_REGION=${_REGION}'
+      - 'CLOUD_RUN_SERVICE=${_SERVICE_NAME}'
+      - 'DOMAIN=${_DOMAIN}'
+      - 'MEASUREMENT_PATH=${_MEASUREMENT_PATH}'
+      - 'GTG_TAG_ID=${_GTG_TAG_ID}'
+    id: 'setup-load-balancer'
 
 images:
   - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/${_SERVICE_NAME}:${COMMIT_SHA}'

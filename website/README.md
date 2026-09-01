@@ -1,62 +1,92 @@
-# Google Tag Manager Ecommerce Demo Store
+# Google Tag Manager Ecommerce Demo Store - GCP Load Balancer & GTG Reverse Proxy
 
-This repository provides a sample e-commerce demo store that is instrumented with Google Tag Manager and Google Analytics 4 (GA4).
+This repository provides a sample e-commerce demo store instrumented with Google Tag Manager, Google Analytics 4 (GA4), and **Google Tag Gateway (GTG)**.
 
-It is built as an Angular 22 Single-Page Application (SPA) containerized with NGINX on Alpine Linux, designed for deployment to **Google Cloud Run** with automated CI/CD using **Google Cloud Build** on push to GitHub.
-
-The Angular frontend source code is located in the `/ui` subdirectory.
-
-## Google Tag Manager & Google Tag Gateway (GTG) Setup
-
-1. Set up a Web Container in Google Tag Manager (or a GA4 Data Stream).
-2. Note your Web Container ID (e.g. `GTM-XXXXXX`) or Tag ID (e.g. `G-XXXXXXXXXX`).
-3. Set `gtmContainerId` in [environment.prod.ts](./ui/src/environments/environment.prod.ts) (or [environment.ts](./ui/src/environments/environment.ts)).
-4. **Google Tag Gateway (GTG) Edge Proxy Routing**:
-   - The NGINX container acts as a true Google Tag Gateway manual reverse proxy.
-   - All paths under `${MEASUREMENT_PATH}` (default `/d4t4`) are routed to `https://${GTG_TAG_ID}.fps.goog/` with the required `Host: ${GTG_TAG_ID}.fps.goog` rewrite, preserving the measurement path.
-   - This single unified route proxies tag script serving (`/d4t4/gtm.js`, `/d4t4/gtag/js`), telemetry data collection (`/d4t4/g/collect`), and GTG health check verification (`/d4t4/healthy`).
-   - Visitor geolocation headers (`X-Forwarded-Country`, `X-Forwarded-Region`, and Google's preferred ISO 3166-2 `X-Forwarded-CountryRegion`, mapped from Google Cloud Run's native GFE `X-AppEngine-Country` and `X-AppEngine-Region` headers) and standard proxy headers (`X-Real-IP`, `X-Forwarded-For`, `X-Forwarded-Proto`) are forwarded to ensure Consent Mode geo-rules and GA4 city-level accuracy work correctly.
-   - `proxy_buffering off;` is maintained on the proxy route to avoid re-compressing Google's pre-compressed Gzip/Brotli streams on the fly, eliminating CPU and latency overhead.
-   - Upstream response header buffer sizes (`proxy_buffer_size 128k;`) are configured to support Google's large debug headers (`x-encrypted-debug-headers`) and multiple `Set-Cookie` headers, preventing 502 Bad Gateway errors during Tag Assistant sessions.
-   - Configurable via environment variables `MEASUREMENT_PATH` and `GTG_TAG_ID` in Cloud Run and `environment.measurementPath` in Angular.
-
-## Currency & Localization
-
-By default, the demo store uses `GBP` (£) as currency. You can change currency and locale settings in [environment.prod.ts](./ui/src/environments/environment.prod.ts).
+On this branch (`gcp`), the architecture uses a **Google Cloud External Application Load Balancer** with an **Internet Network Endpoint Group (Internet NEG)** to execute the GTG reverse proxy directly at the GCP Global Anycast Edge, completely offloading tracking telemetry from the Cloud Run application.
 
 ---
 
-## Deployment & Automated CI/CD (Google Cloud Run + Cloud Build)
+## Architecture Overview
 
-### 1. One-Time GCP Infrastructure Setup
+```
+                                [ Visitor Browser ]
+                                         |
+                                (HTTPS:443 / HTTP:80)
+                                         |
+                                         v
+                         [ Global Anycast Static IPv4 ]
+                                         |
+                         +---------------+---------------+
+                         |  HTTP Port 80 Redirect Map    | (301 to HTTPS)
+                         +-------------------------------+
+                                         |
+                        [ Target HTTPS Proxy + SSL Cert ]
+                         (Google-managed: gcp.nielsoverwijn.dev)
+                                         |
+                              [ Global URL Map ]
+                                      / \
+                 /d4t4/* (GTG Routes)/   \  /* (Default Routes)
+                                    /     \
+                                   v       v
+            +--------------------------+   +-----------------------------+
+            | GTG Backend Service      |   | Cloud Run Backend Service   |
+            | (Host: *.fps.goog)       |   | (Serverless NEG)            |
+            +--------------------------+   +-----------------------------+
+                         |                                |
+                         v                                v
+             [ Global Internet NEG ]            [ Cloud Run Service ]
+           (*.fps.goog:443 via HTTPS)         (gtm-boilerplate-gcp:8080)
+```
 
-Run the automated setup script to enable APIs, create your Artifact Registry Docker repository, and grant Cloud Build necessary deployment permissions:
+### Key Architectural Highlights
+
+1. **Edge Reverse Proxy via Internet NEG**:
+   - Requests to `${MEASUREMENT_PATH}/*` (default `/d4t4/*`) and `${MEASUREMENT_PATH}` are routed directly by the GCP Load Balancer to `https://${GTG_TAG_ID}.fps.goog/` with an automatic `Host: ${GTG_TAG_ID}.fps.goog` rewrite.
+   - Proxies tag script serving (`/d4t4/gtm.js`, `/d4t4/gtag/js`), telemetry collection (`/d4t4/g/collect`), and GTG health checks (`/d4t4/healthy`).
+   - Zero CPU and latency overhead on Cloud Run; tracking traffic never hits your application containers.
+2. **Cloud Run Ingress Lockdown**:
+   - The Cloud Run service (`gtm-boilerplate-gcp`) is configured with `--ingress=internal-and-cloud-load-balancing`.
+   - Direct access via `*.run.app` is blocked, ensuring all users and measurement traffic route through the load balancer and your custom domain.
+3. **Automated SSL & Security**:
+   - Uses a **Google-Managed SSL Certificate** with automatic provisioning and renewal for `gcp.nielsoverwijn.dev`.
+   - Automatic HTTP-to-HTTPS redirect on port 80.
+4. **Clean Customer Sharability**:
+   - **Idempotent Bash Script (`setup_load_balancer.sh`)**: Runs seamlessly in Cloud Build CI/CD or Cloud Shell with zero external dependencies.
+   - **Standalone Terraform Module (`website/terraform/`)**: Production-ready declarative IaC for customers managing infrastructure with Terraform.
+
+---
+
+## Deployment & Automated CI/CD
+
+### 1. One-Time GCP Infrastructure & IAM Setup
+
+Run the automated setup script to enable APIs, create the Artifact Registry Docker repository, and grant Cloud Build permissions:
 
 ```bash
 cd website
 bash setup_cloud_run.sh
 ```
 
-### 2. Connect GitHub to Cloud Build (Continuous Deployment)
-
-To automatically deploy new revisions whenever changes are committed and pushed to `main`:
+### 2. Automated Continuous Deployment via GitHub (Cloud Build)
 
 1. Open [Google Cloud Build Triggers](https://console.cloud.google.com/cloud-build/triggers).
-2. Click **Connect Repository** and choose **GitHub (Cloud Build GitHub App)**.
-3. Authenticate and select your repository (`gtm-boilerplate`).
-4. Click **Create Trigger**:
-   - **Name**: `deploy-gtm-boilerplate-on-push`
+2. Click **Connect Repository** and select `gtm-boilerplate`.
+3. Create a trigger:
+   - **Name**: `deploy-gtm-boilerplate-gcp`
    - **Event**: `Push to a branch`
-   - **Source**: `^main$`
+   - **Source**: `^gcp$`
    - **Configuration**: `Cloud Build configuration file (yaml)`
    - **Location**: `website/cloudbuild.yaml` (or `cloudbuild.yaml`)
-5. Save the trigger.
+4. Save the trigger.
 
-Every commit to `main` will now automatically build the multi-stage Docker container image, push it to Artifact Registry, and deploy to Cloud Run!
+Every push to `gcp` automatically:
+1. Builds and containerizes the Angular SPA with NGINX.
+2. Deploys to Cloud Run service `gtm-boilerplate-gcp` (ingress restricted to load balancer).
+3. Executes `setup_load_balancer.sh` to idempotently provision or update the GCP Load Balancer, SSL certs, and GTG Internet NEG.
 
-### 3. Manual Local Deployment (Alternative)
+### 3. Manual Deployment (Alternative)
 
-If you wish to trigger a direct deployment immediately from your terminal without committing:
+To deploy immediately from your terminal:
 
 ```bash
 cd website
@@ -65,25 +95,53 @@ gcloud builds submit --config=cloudbuild.yaml
 
 ---
 
-## Local Development
+## Cloudflare DNS Configuration
 
-To run the Angular application locally in development mode:
+Once the script or Terraform runs, it outputs the reserved Global Static IPv4 address (e.g. `34.xxx.xxx.xxx`):
+
+1. Open **Cloudflare Dashboard** $\rightarrow$ Select `nielsoverwijn.dev`.
+2. Go to **DNS** $\rightarrow$ **Records** $\rightarrow$ **Add Record**:
+   - **Type**: `A`
+   - **Name**: `gcp`
+   - **IPv4 address**: `<YOUR_LOAD_BALANCER_STATIC_IP>`
+   - **Proxy status**: **DNS only (Grey Cloud ⚪)**
+   - **TTL**: `Auto`
+3. Save the record.
+
+> [!NOTE]
+> Google checks DNS records to authorize and issue the Google-managed SSL certificate. Setting Cloudflare to **DNS only** allows Google's domain verification to succeed automatically within 10–20 minutes.
+
+To monitor certificate provisioning:
+```bash
+gcloud compute ssl-certificates describe gtm-gcp-cert --global --format='get(managed.status,managed.domainStatus)'
+```
+
+---
+
+## Verification Endpoints
+
+Once the SSL certificate state becomes `ACTIVE`:
+
+* **Web Store SPA**: `https://gcp.nielsoverwijn.dev/`
+* **GTG Health Check**: `https://gcp.nielsoverwijn.dev/d4t4/healthy`
+* **GTG Tag Script**: `https://gcp.nielsoverwijn.dev/d4t4/gtm.js?id=GTM-KDFCRJM5`
+* **GA4 Data Collection**: `https://gcp.nielsoverwijn.dev/d4t4/g/collect`
+
+---
+
+## Using Terraform (Optional)
+
+If sharing with customers who prefer Terraform:
 
 ```bash
-cd ui
-npm install
-npm run start
+cd website/terraform
+cp terraform.tfvars.example terraform.tfvars
+# Fill in project_id, domain, etc.
+terraform init
+terraform apply
 ```
-Navigate to `http://localhost:4200/`.
 
-To build the container locally with Docker:
-
-```bash
-cd website
-docker build -t gtm-boilerplate .
-docker run -p 8080:8080 gtm-boilerplate
-```
-Navigate to `http://localhost:8080/`.
+See [website/terraform/README.md](./terraform/README.md) for full details.
 
 ---
 

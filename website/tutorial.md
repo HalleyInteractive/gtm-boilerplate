@@ -43,7 +43,7 @@ measurementPath      | Base path for Google Tag Gateway edge proxy routing (defa
 
 1. Open [Cloud Build Triggers Console](https://console.cloud.google.com/cloud-build/triggers).
 2. Connect your GitHub repository.
-3. Create a trigger that executes `website/cloudbuild.yaml` on pushes to `^main$`.
+3. Create a trigger that executes `website/cloudbuild.yaml` on pushes to `^gcp$`.
 
 ## Manual Deployment
 

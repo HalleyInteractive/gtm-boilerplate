@@ -34,7 +34,7 @@ echo "👤 Active User Account : ${USER_EMAIL}"
 
 # 2. Configurable deployment settings
 REGION=${GCP_REGION:-"europe-west4"}
-SERVICE_NAME=${CLOUD_RUN_SERVICE:-"gtm-boilerplate"}
+SERVICE_NAME=${CLOUD_RUN_SERVICE:-"gtm-boilerplate-gcp"}
 AR_REPO_NAME=${ARTIFACT_REPO:-"gtm-boilerplate-repo"}
 
 echo ""
@@ -45,10 +45,11 @@ echo "   - Artifact Registry: ${AR_REPO_NAME}"
 echo ""
 
 # 3. Enable Required Google Cloud APIs
-echo "🔌 Enabling required Google Cloud APIs (Cloud Run, Cloud Build & Artifact Registry)..."
+echo "🔌 Enabling required Google Cloud APIs (Cloud Run, Cloud Build, Compute & Artifact Registry)..."
 gcloud services enable \
   run.googleapis.com \
   cloudbuild.googleapis.com \
+  compute.googleapis.com \
   artifactregistry.googleapis.com \
   --project="${PROJECT_ID}"
 
@@ -75,6 +76,12 @@ echo "🔑 Configuring Cloud Build Service Account permissions (${CLOUDBUILD_SA}
 gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
   --member="serviceAccount:${CLOUDBUILD_SA}" \
   --role="roles/run.admin" \
+  --no-user-output-enabled
+
+# Grant Compute Admin role to Cloud Build SA (for Load Balancer, SSL certs, and NEGs)
+gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+  --member="serviceAccount:${CLOUDBUILD_SA}" \
+  --role="roles/compute.admin" \
   --no-user-output-enabled
 
 # Grant Service Account User role to Cloud Build SA (to deploy Cloud Run as Compute SA)
