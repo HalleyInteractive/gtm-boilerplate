@@ -16,7 +16,7 @@
 set -e
 
 echo "=========================================================="
-echo "🚀 Google Cloud Run & Cloud Build Setup for GTM Boilerplate"
+echo "🚀 Google Cloud Run & Cloud Build Multi-Platform Setup"
 echo "=========================================================="
 
 # 1. Detect active project ID
@@ -34,21 +34,21 @@ echo "👤 Active User Account : ${USER_EMAIL}"
 
 # 2. Configurable deployment settings
 REGION=${GCP_REGION:-"europe-west4"}
-SERVICE_NAME=${CLOUD_RUN_SERVICE:-"gtm-boilerplate"}
 AR_REPO_NAME=${ARTIFACT_REPO:-"gtm-boilerplate-repo"}
 
 echo ""
 echo "⚙️ Deployment Configuration:"
 echo "   - Region:            ${REGION}"
-echo "   - Cloud Run Service: ${SERVICE_NAME}"
 echo "   - Artifact Registry: ${AR_REPO_NAME}"
+echo "   - Services Deployed: gtm-boilerplate, gtm-boilerplate-nginx, gtm-boilerplate-apache, gtm-boilerplate-gcp"
 echo ""
 
 # 3. Enable Required Google Cloud APIs
-echo "🔌 Enabling required Google Cloud APIs (Cloud Run, Cloud Build & Artifact Registry)..."
+echo "🔌 Enabling required Google Cloud APIs (Cloud Run, Cloud Build, Compute & Artifact Registry)..."
 gcloud services enable \
   run.googleapis.com \
   cloudbuild.googleapis.com \
+  compute.googleapis.com \
   artifactregistry.googleapis.com \
   --project="${PROJECT_ID}"
 
@@ -76,6 +76,21 @@ gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
   --member="serviceAccount:${CLOUDBUILD_SA}" \
   --role="roles/run.admin" \
   --no-user-output-enabled
+
+# Grant Compute Admin role to Cloud Build SA (for Load Balancer, SSL certs, and NEGs)
+gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+  --member="serviceAccount:${CLOUDBUILD_SA}" \
+  --role="roles/compute.admin" \
+  --no-user-output-enabled
+
+# Also grant Compute Admin to any custom CI/CD service accounts (e.g. cicd-*)
+for sa in $(gcloud iam service-accounts list --filter="email:cicd-*" --format="value(email)" --project="${PROJECT_ID}" 2>/dev/null); do
+  echo "🔑 Granting roles/compute.admin to custom CI/CD service account (${sa})..."
+  gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+    --member="serviceAccount:${sa}" \
+    --role="roles/compute.admin" \
+    --no-user-output-enabled || true
+done
 
 # Grant Service Account User role to Cloud Build SA (to deploy Cloud Run as Compute SA)
 gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
@@ -107,12 +122,12 @@ echo "      https://console.cloud.google.com/cloud-build/triggers/connect?projec
 echo "   2. Select 'GitHub (Cloud Build GitHub App)'"
 echo "   3. Authenticate and select your repository: gtm-boilerplate"
 echo "   4. Create a trigger:"
-echo "      - Name: deploy-gtm-boilerplate-on-push"
+echo "      - Name: deploy-gtm-boilerplate-all-on-push"
 echo "      - Event: Push to a branch"
 echo "      - Branch: ^main$"
 echo "      - Configuration: Cloud Build configuration file (yaml)"
-echo "      - Location: website/cloudbuild.yaml (or cloudbuild.yaml)"
+echo "      - Location: cloudbuild.yaml"
 echo ""
 echo "🚀 To test manual deployment right now from your local machine, run:"
-echo "   cd website && gcloud builds submit --config=cloudbuild.yaml --substitutions=_REGION=${REGION},_SERVICE_NAME=${SERVICE_NAME},_AR_REPO_NAME=${AR_REPO_NAME}"
+echo "   gcloud builds submit --config=cloudbuild.yaml --substitutions=_REGION=${REGION},_AR_REPO_NAME=${AR_REPO_NAME}"
 echo "=========================================================="

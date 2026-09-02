@@ -1,7 +1,6 @@
 .git
 .github
 ui/node_modules
-ui/dist
 ui/.angular
 *.pyc
 __pycache__

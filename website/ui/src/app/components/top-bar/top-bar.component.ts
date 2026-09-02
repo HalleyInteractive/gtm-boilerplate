@@ -23,6 +23,14 @@ import { RouterLink } from '@angular/router';
 import { LoginFormComponent } from '../login-form/login-form.component';
 import { NgClass } from '@angular/common';
 
+declare global {
+  interface Window {
+    __APP_ENV__?: {
+      PLATFORM_NAME?: string;
+    };
+  }
+}
+
 /**
  * Top bar component.
  */
@@ -38,6 +46,14 @@ export class TopBarComponent implements OnInit, OnDestroy {
 
   private eventSubscription?: Subscription;
   shakeCart = false;
+
+  get storeTitle(): string {
+    const platform = window.__APP_ENV__?.PLATFORM_NAME?.trim();
+    if (platform && platform !== '__APP_PLATFORM_NAME__') {
+      return `Demo E-commerce Store - ${platform}`;
+    }
+    return 'Demo E-commerce Store';
+  }
 
   ngOnInit(): void {
     this.eventSubscription = this.basketService

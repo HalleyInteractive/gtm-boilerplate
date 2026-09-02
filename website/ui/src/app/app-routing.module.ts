@@ -24,8 +24,15 @@ import {HomePageComponent} from './components/home-page/home-page.component';
 import {NewsletterPageComponent} from './components/newsletter-page/newsletter-page.component';
 import {ProductPageComponent} from './components/product-page/product-page.component';
 import {ProductsPageComponent} from './components/products-page/products-page.component';
+function getStoreSuffix(): string {
+  const platform = typeof window !== 'undefined' ? window.__APP_ENV__?.PLATFORM_NAME?.trim() : '';
+  if (platform && platform !== '__APP_PLATFORM_NAME__') {
+    return `| Demo E-commerce Store - ${platform}`;
+  }
+  return '| Demo E-commerce Store';
+}
 
-const storeNameSuffix = '| Demo E-commerce Store - NGINX';
+const storeNameSuffix = getStoreSuffix();
 const routes: Routes = [
   {
     path: '',

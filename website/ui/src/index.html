@@ -18,9 +18,20 @@
 
 <head>
   <meta charset="utf-8">
-  <title>Demo E-commerce Store - NGINX</title>
+  <title>Demo E-commerce Store</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    window.__APP_ENV__ = window.__APP_ENV__ || {
+      PLATFORM_NAME: '__APP_PLATFORM_NAME__'
+    };
+    (function() {
+      var p = window.__APP_ENV__.PLATFORM_NAME;
+      if (p && p !== '__APP_PLATFORM_NAME__') {
+        document.title = 'Demo E-commerce Store - ' + p;
+      }
+    })();
+  </script>
 
   <link rel="apple-touch-icon" sizes="180x180" href="assets/favicon/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon/favicon-32x32.png">
