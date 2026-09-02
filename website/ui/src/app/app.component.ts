@@ -21,7 +21,6 @@ import { NgClass } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import {ConsentService} from './services/consent.service';
 import {TopBarComponent} from './components/top-bar/top-bar.component';
-import {TagSettingsComponent} from './components/tag-settings/tag-settings.component';
 import {CookieBannerComponent} from './components/cookie-banner/cookie-banner.component';
 import {EventStreamComponent} from './components/event-stream/event-stream.component';
 
@@ -35,7 +34,6 @@ import {EventStreamComponent} from './components/event-stream/event-stream.compo
       NgClass,
       RouterOutlet,
       TopBarComponent,
-      TagSettingsComponent,
       CookieBannerComponent,
       EventStreamComponent,
     ]

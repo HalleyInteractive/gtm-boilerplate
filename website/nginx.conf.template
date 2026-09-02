@@ -1,9 +1,59 @@
+# =========================================================================
+# Geolocation header mappings for Google Tag Gateway (GTG)
+# Priority: Incoming X-Forwarded-Country > Cloudflare > CloudFront > GFE > Default fallback
+# =========================================================================
+
+map $http_x_forwarded_country $gtg_country_from_fwd {
+    default $http_x_forwarded_country;
+    ""      $http_cf_ipcountry; # Cloudflare fallback
+}
+
+map $gtg_country_from_fwd $gtg_country_from_cf {
+    default $gtg_country_from_fwd;
+    ""      $http_cloudfront_viewer_country; # AWS CloudFront fallback
+}
+
+map $gtg_country_from_cf $gtg_country_from_cf_viewer {
+    default $gtg_country_from_cf;
+    ""      $http_x_appengine_country; # Google App Engine fallback
+}
+
+map $gtg_country_from_cf_viewer $gtg_country {
+    default $gtg_country_from_cf_viewer;
+    ""      "${DEFAULT_GEO_COUNTRY}"; # Fallback default for direct Cloud Run / testing
+}
+
+map $http_x_forwarded_region $gtg_region_from_fwd {
+    default $http_x_forwarded_region;
+    ""      $http_x_appengine_region;
+}
+
+map $gtg_region_from_fwd $gtg_region {
+    default $gtg_region_from_fwd;
+    ""      $http_cloudfront_viewer_country_region;
+}
+
+map "$gtg_country:$gtg_region" $gtg_country_region {
+    default "$gtg_country-$gtg_region";
+    "~^:"   "";
+    "~:$"   "$gtg_country";
+    ":"     "";
+}
+
 server {
     listen ${PORT};
     server_name localhost;
 
+    # Client request header buffers for large cookies / debug payloads
+    client_header_buffer_size 16k;
+    large_client_header_buffers 4 64k;
+
     root /usr/share/nginx/html;
     index index.html;
+
+    # DNS resolver for dynamic proxy_pass
+    resolver 8.8.8.8 8.8.4.4 valid=300s ipv6=off;
+    resolver_timeout 5s;
 
     # Gzip Compression
     gzip on;
@@ -11,6 +61,47 @@ server {
     gzip_min_length 1024;
     gzip_proxied expired no-cache no-store private auth;
     gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml application/javascript application/json image/svg+xml;
+
+    # =========================================================================
+    # Optimized Wildcard Route for Google Tag Gateway (GTG) Manual Proxy
+    # Routes script serving, telemetry, and health check routes to fps.goog
+    # =========================================================================
+
+    # Redirect exact measurement path without trailing slash to preserve query parameters
+    location = ${MEASUREMENT_PATH} {
+        return 301 $scheme://$http_host$uri/$is_args$args;
+    }
+
+    location ~* ^${MEASUREMENT_PATH}/(.*)$ {
+        # 1. Forward BOTH script serving and data collection to your unique first-party backend (preserving measurement path)
+        proxy_pass https://${GTG_TAG_ID}.fps.goog$request_uri;
+
+        # 2. Rewrite Host header so Google knows which container configuration to serve (Critical!)
+        proxy_set_header Host ${GTG_TAG_ID}.fps.goog;
+
+        # 3. Connection & SSL security settings
+        proxy_ssl_server_name on;
+        proxy_ssl_protocols TLSv1.2 TLSv1.3;
+        proxy_buffering off;
+
+        # Upstream response header buffers (Critical for GTM debug mode & encrypted headers)
+        # Prevents 502 "upstream sent too big header while reading response header from upstream"
+        proxy_buffer_size 128k;
+        proxy_buffers 4 256k;
+        proxy_busy_buffers_size 256k;
+
+        # 4. Forward standard visitor headers
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header User-Agent $http_user_agent;
+        proxy_set_header Referer $http_referer;
+
+        # 5. Forward visitor geolocation data (GFE, CDN, or default fallback)
+        proxy_set_header X-Forwarded-Country $gtg_country;
+        proxy_set_header X-Forwarded-Region $gtg_region;
+        proxy_set_header X-Forwarded-CountryRegion $gtg_country_region;
+    }
 
     # Static assets with caching
     location ~* \.(?:ico|css|js|gif|jpe?g|png|svg|woff2?|eot|ttf|otf|webmanifest)$ {

@@ -16,8 +16,11 @@
 
 substitutions:
   _REGION: 'europe-west4'
-  _SERVICE_NAME: 'gtm-boilerplate'
+  _SERVICE_NAME: 'gtm-boilerplate-nginx'
   _AR_REPO_NAME: 'gtm-boilerplate-repo'
+  _MEASUREMENT_PATH: '/d4t4'
+  _GTG_TAG_ID: 'GTM-KDFCRJM5'
+  _DEFAULT_GEO_COUNTRY: 'NL'
 
 steps:
   # 1. Build the multi-stage Docker container image
@@ -61,6 +64,8 @@ steps:
       - '10'
       - '--port'
       - '8080'
+      - '--update-env-vars'
+      - 'MEASUREMENT_PATH=${_MEASUREMENT_PATH},GTG_TAG_ID=${_GTG_TAG_ID},DEFAULT_GEO_COUNTRY=${_DEFAULT_GEO_COUNTRY}'
     id: 'deploy-cloud-run'
 
 images:
