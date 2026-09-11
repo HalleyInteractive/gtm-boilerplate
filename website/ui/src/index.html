@@ -23,11 +23,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script>
     window.__APP_ENV__ = window.__APP_ENV__ || {
-      PLATFORM_NAME: '__APP_PLATFORM_NAME__'
+      PLATFORM_NAME: '__APP_PLATFORM_NAME__',
+      MEASUREMENT_PATH: '__APP_MEASUREMENT_PATH__'
+    };
+    // Container entrypoints sed-replace every occurrence of a placeholder, so a value
+    // can never be compared against its own literal sentinel here. Match the shape instead.
+    window.__APP_ENV__.isPlaceholder = function (value) {
+      return !value || /^__APP_[A-Z_]+__$/.test(value);
     };
     (function() {
       var p = window.__APP_ENV__.PLATFORM_NAME;
-      if (p && p !== '__APP_PLATFORM_NAME__') {
+      if (!window.__APP_ENV__.isPlaceholder(p)) {
         document.title = 'Demo E-commerce Store - ' + p;
       }
     })();
@@ -62,6 +68,62 @@
     }
   </script>
 
+  <!--
+    Tag source resolution. Decides whether gtm.js is fetched first-party through the
+    Google Tag Gateway edge proxy, or third-party from googletagmanager.com.
+    Precedence: ?tagsrc= > sessionStorage > MEASUREMENT_PATH (injected at container
+    startup) > googletagmanager.com.
+  -->
+  <script>
+    (function (w) {
+      var DIRECT = 'https://www.googletagmanager.com';
+      var STORAGE_KEY = 'gtm_tagsrc';
+
+      // The edge route only exists when a reverse proxy is in front of the app.
+      // Under `ng serve` the placeholder is never substituted, so there is no edge.
+      var edge = w.__APP_ENV__.MEASUREMENT_PATH;
+      if (w.__APP_ENV__.isPlaceholder(edge) || edge.charAt(0) !== '/') {
+        edge = '';
+      }
+      edge = edge.replace(/\/+$/, '');
+
+      // Only two keywords are accepted, never a caller-supplied URL, so the query
+      // string cannot be used to point the tag at an attacker-controlled host.
+      var choice = null;
+      var match = w.location.search.match(/[?&]tagsrc=([^&]*)/);
+      if (match) {
+        choice = decodeURIComponent(match[1]);
+      }
+      try {
+        if (choice === 'gtg' || choice === 'direct') {
+          w.sessionStorage.setItem(STORAGE_KEY, choice);
+        } else {
+          choice = w.sessionStorage.getItem(STORAGE_KEY);
+        }
+      } catch (e) {
+        // sessionStorage can throw when cookies are blocked; fall back to defaults.
+      }
+
+      if (choice !== 'gtg' && choice !== 'direct') {
+        choice = edge ? 'gtg' : 'direct';
+      }
+      if (choice === 'gtg' && !edge) {
+        choice = 'direct';
+      }
+
+      w.__APP_ENV__.TAG_SOURCE = choice;
+      w.__APP_ENV__.TAG_BASE = choice === 'gtg' ? edge : DIRECT;
+    })(window);
+  </script>
+
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  w.__APP_ENV__.TAG_BASE+'/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-KDFCRJM5');</script>
+  <!-- End Google Tag Manager -->
+
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -72,6 +134,11 @@
 </head>
 
 <body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KDFCRJM5"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+
   <app-root></app-root>
 </body>
 

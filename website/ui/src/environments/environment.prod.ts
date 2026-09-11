@@ -23,9 +23,4 @@ export const environment = {
   currency: 'GBP',
   // This is the ISO_639 language code and the ISO_3166-1 Alpha 2 country code.
   localCode: 'en-GB',
-  // The ID of the container in Google Tag Manager, e.g. GTM-XXXXXXXX
-  gtmContainerId: 'GTM-KDFCRJM5',
-  // The base path or URL used to load GTM scripts and collect data.
-  // Set to a relative edge route (e.g. '/d4t4') or full URL (e.g. 'https://www.googletagmanager.com')
-  measurementPath: '/d4t4',
 };

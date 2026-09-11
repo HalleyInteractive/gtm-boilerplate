@@ -8,10 +8,12 @@ export GTG_TAG_ID="${GTG_TAG_ID:-GTM-KDFCRJM5}"
 export DEFAULT_GEO_COUNTRY="${DEFAULT_GEO_COUNTRY:-NL}"
 export PLATFORM_NAME="${PLATFORM_NAME:-}"
 
-# Inject PLATFORM_NAME into index.html
+# Inject PLATFORM_NAME and MEASUREMENT_PATH into index.html
 HTML_FILE="/usr/local/apache2/htdocs/index.html"
 if [ -f "$HTML_FILE" ]; then
   sed -i "s/__APP_PLATFORM_NAME__/${PLATFORM_NAME}/g" "$HTML_FILE"
+  # Pipe delimiter: the measurement path contains forward slashes.
+  sed -i "s|__APP_MEASUREMENT_PATH__|${MEASUREMENT_PATH}|g" "$HTML_FILE"
 fi
 
 # Ensure health check endpoint exists

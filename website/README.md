@@ -21,7 +21,7 @@ The hosting configurations are located in modular directories under `hosting/`:
 
 1. Set up a Web Container in Google Tag Manager (or a GA4 Data Stream).
 2. Note your Web Container ID (e.g. `GTM-XXXXXX` / `GTM-KDFCRJM5`).
-3. Set `gtmContainerId` in [environment.prod.ts](./ui/src/environments/environment.prod.ts) (or [environment.ts](./ui/src/environments/environment.ts)).
+3. Replace the container ID in the Google Tag Manager snippets in [index.html](./ui/src/index.html) (both the `<head>` script and the `<body>` `<noscript>` iframe). The snippet is hardcoded there, so it is present on every page of the SPA before Angular bootstraps.
 4. **Google Tag Gateway (GTG) Edge Proxy Routing**:
    - Both NGINX and Apache act as true Google Tag Gateway manual reverse proxies.
    - All paths under `${MEASUREMENT_PATH}` (default `/d4t4`) are proxied to `https://${GTG_TAG_ID}.fps.goog/` with the required `Host: ${GTG_TAG_ID}.fps.goog` rewrite, preserving the measurement path.
@@ -29,7 +29,25 @@ The hosting configurations are located in modular directories under `hosting/`:
    - Visitor geolocation headers (`X-Forwarded-Country`, `X-Forwarded-Region`, and Google's preferred ISO 3166-2 `X-Forwarded-CountryRegion`, mapped from Google Cloud Run's native GFE `X-AppEngine-Country` and `X-AppEngine-Region` headers) and standard proxy headers (`X-Real-IP`, `X-Forwarded-For`, `X-Forwarded-Proto`) are forwarded to ensure Consent Mode geo-rules and GA4 city-level accuracy work correctly.
    - `proxy_buffering off;` is maintained on the proxy route to avoid re-compressing Google's pre-compressed Gzip/Brotli streams on the fly, eliminating CPU and latency overhead.
    - Upstream response header buffer sizes (`proxy_buffer_size 128k;`) are configured to support Google's large debug headers (`x-encrypted-debug-headers`) and multiple `Set-Cookie` headers, preventing 502 Bad Gateway errors during Tag Assistant sessions.
-   - Configurable via environment variables `MEASUREMENT_PATH` and `GTG_TAG_ID` in Cloud Run and `environment.measurementPath` in Angular.
+   - Configurable via environment variables `MEASUREMENT_PATH` and `GTG_TAG_ID` in Cloud Run.
+
+### Switching the tag source (GTG vs. googletagmanager.com)
+
+The snippet in [index.html](./ui/src/index.html) resolves where `gtm.js` is fetched from at runtime, so a single build can be tested against either route. Resolution order:
+
+| Precedence | Source | Notes |
+| --- | --- | --- |
+| 1 | `?tagsrc=gtg` or `?tagsrc=direct` | Ad-hoc override, remembered in `sessionStorage` for the rest of the tab session |
+| 2 | `sessionStorage['gtm_tagsrc']` | Set by a previous `?tagsrc=` visit; clear it to fall back to the default |
+| 3 | `MEASUREMENT_PATH` | Injected into `index.html` at container startup (default `/d4t4`) |
+| 4 | `https://www.googletagmanager.com` | Fallback when no edge route is configured, e.g. under `ng serve` |
+
+- `gtg` loads `${MEASUREMENT_PATH}/gtm.js` first-party through the reverse proxy; `direct` loads `https://www.googletagmanager.com/gtm.js` third-party.
+- Deploy with `MEASUREMENT_PATH=""` to make a container default to loading directly from Google.
+- Only the two keywords above are accepted. An arbitrary URL in `?tagsrc=` is ignored, so the query string cannot repoint the tag at another host.
+- `?tagsrc=gtg` falls back to loading directly when no edge route is configured, so it cannot 404 the tag under `ng serve`.
+- The resolved value is readable in the console as `window.__APP_ENV__.TAG_SOURCE` / `window.__APP_ENV__.TAG_BASE`.
+- **Caveat:** the `<noscript>` iframe always points at `googletagmanager.com`, because selecting a route requires JavaScript. It only fires for JS-disabled visitors.
 
 ---
 
@@ -40,6 +58,8 @@ The Angular application is built once for all hosting environments. At container
 - On `gtm-boilerplate-nginx`: Displays `Demo E-commerce Store - NGINX`
 - On `gtm-boilerplate-apache`: Displays `Demo E-commerce Store - APACHE`
 - On `gtm-boilerplate-gcp`: Displays `Demo E-commerce Store - GCP`
+
+`MEASUREMENT_PATH` is injected into `window.__APP_ENV__` by the same mechanism, and drives the tag source resolution described above.
 
 ---
 
