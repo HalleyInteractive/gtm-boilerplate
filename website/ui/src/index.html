@@ -69,14 +69,15 @@
   </script>
 
   <!--
-    Tag source resolution. Decides whether gtm.js is fetched first-party through the
-    Google Tag Gateway edge proxy, or third-party from googletagmanager.com.
+    Tag source resolution. Decides where gtm.js is fetched from:
+      ?tagsrc=google  -> https://www.googletagmanager.com/gtm.js (third-party)
+      ?tagsrc=gateway -> ${MEASUREMENT_PATH}/gtm.js (first-party, via the reverse proxy)
     Precedence: ?tagsrc= > sessionStorage > MEASUREMENT_PATH (injected at container
     startup) > googletagmanager.com.
   -->
   <script>
     (function (w) {
-      var DIRECT = 'https://www.googletagmanager.com';
+      var GOOGLE = 'https://www.googletagmanager.com';
       var STORAGE_KEY = 'gtm_tagsrc';
 
       // The edge route only exists when a reverse proxy is in front of the app.
@@ -87,32 +88,48 @@
       }
       edge = edge.replace(/\/+$/, '');
 
-      // Only two keywords are accepted, never a caller-supplied URL, so the query
-      // string cannot be used to point the tag at an attacker-controlled host.
-      var choice = null;
+      function isKnown(value) {
+        return value === 'google' || value === 'gateway';
+      }
+
+      // Only these two keywords are accepted, never a caller-supplied URL, so the
+      // query string cannot be used to point the tag at an attacker-controlled host.
+      var requested = null;
       var match = w.location.search.match(/[?&]tagsrc=([^&]*)/);
       if (match) {
-        choice = decodeURIComponent(match[1]);
+        requested = decodeURIComponent(match[1]);
+        if (!isKnown(requested)) {
+          if (w.console && w.console.warn) {
+            w.console.warn('Ignoring unknown ?tagsrc=' + requested + '. Use "google" or "gateway".');
+          }
+          requested = null;
+        }
       }
+
+      var choice = requested;
       try {
-        if (choice === 'gtg' || choice === 'direct') {
-          w.sessionStorage.setItem(STORAGE_KEY, choice);
+        if (requested) {
+          w.sessionStorage.setItem(STORAGE_KEY, requested);
         } else {
           choice = w.sessionStorage.getItem(STORAGE_KEY);
         }
       } catch (e) {
-        // sessionStorage can throw when cookies are blocked; fall back to defaults.
+        // sessionStorage can throw when cookies are blocked; keep the requested value.
       }
 
-      if (choice !== 'gtg' && choice !== 'direct') {
-        choice = edge ? 'gtg' : 'direct';
+      if (!isKnown(choice)) {
+        choice = edge ? 'gateway' : 'google';
       }
-      if (choice === 'gtg' && !edge) {
-        choice = 'direct';
+      if (choice === 'gateway' && !edge) {
+        // No reverse proxy in front of the app, so the edge route would 404.
+        choice = 'google';
       }
 
+      // '' when no reverse proxy is in front of the app, which the UI uses to
+      // disable the gateway option.
+      w.__APP_ENV__.EDGE_PATH = edge;
       w.__APP_ENV__.TAG_SOURCE = choice;
-      w.__APP_ENV__.TAG_BASE = choice === 'gtg' ? edge : DIRECT;
+      w.__APP_ENV__.TAG_BASE = choice === 'gateway' ? edge : GOOGLE;
     })(window);
   </script>
 

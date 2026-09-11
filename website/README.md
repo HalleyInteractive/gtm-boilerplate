@@ -31,21 +31,31 @@ The hosting configurations are located in modular directories under `hosting/`:
    - Upstream response header buffer sizes (`proxy_buffer_size 128k;`) are configured to support Google's large debug headers (`x-encrypted-debug-headers`) and multiple `Set-Cookie` headers, preventing 502 Bad Gateway errors during Tag Assistant sessions.
    - Configurable via environment variables `MEASUREMENT_PATH` and `GTG_TAG_ID` in Cloud Run.
 
-### Switching the tag source (GTG vs. googletagmanager.com)
+### Switching the tag source (gateway vs. googletagmanager.com)
 
-The snippet in [index.html](./ui/src/index.html) resolves where `gtm.js` is fetched from at runtime, so a single build can be tested against either route. Resolution order:
+The snippet in [index.html](./ui/src/index.html) resolves where `gtm.js` is fetched from at runtime, so a single build can be tested against either route.
+
+**From the UI:** the **Tag source** panel at the top of the sidebar shows which route served `gtm.js` and switches between them. Selecting a route reloads the page, because `gtm.js` is loaded once in the document head. The gateway option is disabled when no reverse proxy is configured, and a **Reset to deployment default** link appears while an override is active.
+
+**From the URL:**
+
+| Query parameter | Loads | Serving |
+| --- | --- | --- |
+| `?tagsrc=google` | `https://www.googletagmanager.com/gtm.js` | Third-party, straight from Google |
+| `?tagsrc=gateway` | `${MEASUREMENT_PATH}/gtm.js` (e.g. `/d4t4/gtm.js`) | First-party, through the NGINX/Apache GTG proxy |
+
+Resolution order:
 
 | Precedence | Source | Notes |
 | --- | --- | --- |
-| 1 | `?tagsrc=gtg` or `?tagsrc=direct` | Ad-hoc override, remembered in `sessionStorage` for the rest of the tab session |
+| 1 | `?tagsrc=` | Ad-hoc override, remembered in `sessionStorage` for the rest of the tab session |
 | 2 | `sessionStorage['gtm_tagsrc']` | Set by a previous `?tagsrc=` visit; clear it to fall back to the default |
-| 3 | `MEASUREMENT_PATH` | Injected into `index.html` at container startup (default `/d4t4`) |
+| 3 | `MEASUREMENT_PATH` | Injected into `index.html` at container startup (default `/d4t4`, so deployments default to `gateway`) |
 | 4 | `https://www.googletagmanager.com` | Fallback when no edge route is configured, e.g. under `ng serve` |
 
-- `gtg` loads `${MEASUREMENT_PATH}/gtm.js` first-party through the reverse proxy; `direct` loads `https://www.googletagmanager.com/gtm.js` third-party.
 - Deploy with `MEASUREMENT_PATH=""` to make a container default to loading directly from Google.
-- Only the two keywords above are accepted. An arbitrary URL in `?tagsrc=` is ignored, so the query string cannot repoint the tag at another host.
-- `?tagsrc=gtg` falls back to loading directly when no edge route is configured, so it cannot 404 the tag under `ng serve`.
+- Only `google` and `gateway` are accepted. Any other value, including a URL, is ignored with a console warning, so the query string cannot repoint the tag at another host.
+- `?tagsrc=gateway` falls back to Google when no edge route is configured, so it cannot 404 the tag under `ng serve`.
 - The resolved value is readable in the console as `window.__APP_ENV__.TAG_SOURCE` / `window.__APP_ENV__.TAG_BASE`.
 - **Caveat:** the `<noscript>` iframe always points at `googletagmanager.com`, because selecting a route requires JavaScript. It only fires for JS-disabled visitors.
 

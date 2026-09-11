@@ -39,7 +39,7 @@ localCode            | Locale code used for currency formatting (default: `en-GB
 
 Your Google Tag Manager Web Container ID (`GTM-XXXXXX` / `GTM-KDFCRJM5`) is not part of this file. It is hardcoded in the Google Tag Manager snippets in [index.html](./ui/src/index.html).
 
-The deployed site loads `gtm.js` first-party through the Google Tag Gateway proxy (`MEASUREMENT_PATH`, default `/d4t4`). Append `?tagsrc=direct` to any URL to load it from `googletagmanager.com` instead, and `?tagsrc=gtg` to switch back. The choice sticks for the rest of the browser tab session.
+The deployed site loads `gtm.js` first-party through the Google Tag Gateway proxy (`MEASUREMENT_PATH`, default `/d4t4`). Append `?tagsrc=google` to any URL to load it from `googletagmanager.com` instead, and `?tagsrc=gateway` to switch back. The choice sticks for the rest of the browser tab session.
 
 ## Continuous Deployment via GitHub (Automated on Push)
 

@@ -31,6 +31,7 @@ import {ProductListComponent} from './components/product-list/product-list.compo
 import {ProductPageComponent} from './components/product-page/product-page.component';
 import {ProductsPageComponent} from './components/products-page/products-page.component';
 import {TopBarComponent} from './components/top-bar/top-bar.component';
+import {TagSourceComponent} from './components/tag-source/tag-source.component';
 
 @NgModule({
     declarations: [],
@@ -51,6 +52,7 @@ import {TopBarComponent} from './components/top-bar/top-bar.component';
         LoginFormComponent,
         EventStreamComponent,
         NewsletterPageComponent,
+        TagSourceComponent,
     ],
     providers: [],
     bootstrap: [AppComponent],

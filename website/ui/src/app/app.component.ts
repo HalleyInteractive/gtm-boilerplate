@@ -23,6 +23,7 @@ import {ConsentService} from './services/consent.service';
 import {TopBarComponent} from './components/top-bar/top-bar.component';
 import {CookieBannerComponent} from './components/cookie-banner/cookie-banner.component';
 import {EventStreamComponent} from './components/event-stream/event-stream.component';
+import {TagSourceComponent} from './components/tag-source/tag-source.component';
 
 /** The route app component */
 @Component({
@@ -36,6 +37,7 @@ import {EventStreamComponent} from './components/event-stream/event-stream.compo
       TopBarComponent,
       CookieBannerComponent,
       EventStreamComponent,
+      TagSourceComponent,
     ]
 })
 export class AppComponent {
