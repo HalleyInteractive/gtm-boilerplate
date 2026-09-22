@@ -39,10 +39,10 @@
       rawFile: '/raw-origin/retagged-head.txt',
       title: '3. Retagged 1st-Party GTM in <head>',
       placement: 'In <head> AFTER #dl-head-init',
-      construction: "First-Party Retagged IIFE ('/__MEASUREMENT_PATH__/gtm.js?id='+i+dl)",
+      construction: "Official GTG Retagged IIFE ('/__MEASUREMENT_PATH__/?id='+i+dl, i='')",
       expectHeadBeforeGtm: true,
       expectBodyBeforeGtm: false,
-      summary: 'Explicitly retagged to load from the first-party measurement path in <head> after #dl-head-init.'
+      summary: 'Explicitly retagged per Google Tag Gateway Setup Guide (\'/<path>/?id=\'+i+dl with empty id \'\') in <head> after #dl-head-init.'
     },
     {
       id: 'retagged-first-party',
@@ -50,10 +50,10 @@
       rawFile: '/raw-origin/retagged-first-party.txt',
       title: '4. Retagged 1st-Party GTM at Bottom of <body>',
       placement: 'Bottom of <body> AFTER #dl-head-init & #dl-body-init',
-      construction: "First-Party Retagged IIFE ('/__MEASUREMENT_PATH__/gtm.js?id='+i+dl)",
+      construction: "Official GTG Retagged IIFE ('/__MEASUREMENT_PATH__/?id='+i+dl, i='')",
       expectHeadBeforeGtm: true,
       expectBodyBeforeGtm: true,
-      summary: 'Explicitly retagged to load from the first-party measurement path at the very bottom of <body>. Proves that when properly retagged, GTM loads strictly where placed after all dataLayer pushes.'
+      summary: 'Explicitly retagged per Google Tag Gateway Setup Guide (\'/<path>/?id=\'+i+dl with empty id \'\') at the very bottom of <body>. Proves GTM loads strictly where placed after all dataLayer pushes.'
     },
     {
       id: 'dynamic-broken',
@@ -61,7 +61,7 @@
       rawFile: '/raw-origin/dynamic-broken.txt',
       title: '5. Improperly Constructed / Dynamic JS URL',
       placement: 'Bottom of <body> (Dynamic JS Concatenation)',
-      construction: 'Non-standard JS variable URL (base + "/gtm.js?id=" + i)',
+      construction: 'Non-standard JS variable URL (w.__APP_ENV__.TAG_BASE + "/gtm.js?id=" + i)',
       expectHeadBeforeGtm: true,
       expectBodyBeforeGtm: true,
       summary: 'Reproduces the old index.html construction where j.src is built via runtime JS variables. Proves Cloudflare does not recognize the tag and auto-injects at the top of <head> BEFORE dataLayer!'
@@ -81,12 +81,12 @@
       id: 'direct-script-tag',
       path: '/direct-script-tag',
       rawFile: '/raw-origin/direct-script-tag.txt',
-      title: '7. Direct <script async src="..."> at Bottom of <body>',
-      placement: 'Bottom of <body> (Literal <script src> tag)',
-      construction: '<script async src="https://www.googletagmanager.com/gtm.js?id=GTM-KDFCRJM5">',
+      title: '7. Direct <script async src="/<path>/"> at Bottom of <body>',
+      placement: 'Bottom of <body> (Literal <script async src="/<path>/"> tag)',
+      construction: '<script async src="/__MEASUREMENT_PATH__/"> (GTG gtag/direct pattern)',
       expectHeadBeforeGtm: true,
       expectBodyBeforeGtm: true,
-      summary: 'Uses a literal <script async src="..."> element at the bottom of <body> instead of the IIFE insertBefore pattern, keeping the <script> DOM node physically in <body>.'
+      summary: 'Uses the official GTG Setup Guide direct <script async src="/<path>/"> element at the bottom of <body> instead of the IIFE insertBefore pattern.'
     }
   ];
 
@@ -123,7 +123,7 @@
       if (item.event === 'pre_gtm_body_init' && bodyPushIndex === -1) {
         bodyPushIndex = i;
       }
-      if (item.event === 'gtm.js' || item['gtm.start']) {
+      if (item.event === 'gtm.js' || item['gtm.start'] || item.event === 'gtm.init') {
         if (firstGtmStartIndex === -1) firstGtmStartIndex = i;
         allGtmStartIndices.push(i);
       }
@@ -144,9 +144,20 @@
 
   function getLoadedGtmResources() {
     if (!window.performance || !window.performance.getEntriesByType) return [];
+    var mp = window.__CONFIGURED_MP__ || '/d4t4';
     var resources = window.performance.getEntriesByType('resource') || [];
     return resources.filter(function (r) {
-      return r.name && (r.name.indexOf('gtm.js') !== -1 || r.name.indexOf('gtag/js') !== -1);
+      if (!r.name) return false;
+      if (r.name.indexOf('/assets/diagnostics.js') !== -1 || r.name.indexOf('/assets/styles.css') !== -1) return false;
+      if (r.name.indexOf('/raw-origin/') !== -1) return false;
+      return (
+        r.initiatorType === 'script' ||
+        r.name.indexOf('gtm.js') !== -1 ||
+        r.name.indexOf('gtag/js') !== -1 ||
+        r.name.indexOf('/?id=') !== -1 ||
+        r.name.indexOf(mp + '/') !== -1 ||
+        r.name.indexOf('/metrics/') !== -1
+      );
     });
   }
 
@@ -220,12 +231,10 @@
               edgeInjectedTopOfHead = true;
             }
           }
-          // Check if origin-gtm-snippet or origin-gtm-direct was rewritten in-place
-          for (var j = 0; j < originScripts.length; j++) {
-            var origS = originScripts[j];
-            if (origS.id === 'origin-gtm-snippet' || origS.id === 'origin-gtm-direct') {
-              var matchingEdge = edgeScripts.find(function (es) { return es.id === origS.id; });
-              if (matchingEdge && matchingEdge.raw !== origS.raw) {
+          // Check if the origin GTM script was rewritten in-place at the same index
+          if (!edgeInjectedTopOfHead && originScripts.length === edgeScripts.length) {
+            for (var j = 0; j < originScripts.length; j++) {
+              if (originScripts[j].raw !== edgeScripts[j].raw) {
                 edgeRewroteInPlace = true;
               }
             }

@@ -31,8 +31,8 @@
   </script>
 </head>
 <body>
-  <!-- Google Tag Manager (noscript) -->
-  <noscript><iframe src="__APP_MEASUREMENT_PATH__/ns.html?id=GTM-KDFCRJM5"
+  <!-- Google Tag Manager (noscript) - GTG docs state <noscript> is not supported on measurement path and must point to www.googletagmanager.com -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KDFCRJM5"
   height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <!-- End Google Tag Manager (noscript) -->
 
@@ -65,11 +65,11 @@
 
   <!-- STEP 3: Explicitly Retagged First-Party GTM Snippet at VERY BOTTOM of <body> -->
   <!-- Google Tag Manager -->
-  <script id="origin-gtm-snippet" data-origin-script="gtm-snippet">(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
   new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
   j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-  '__APP_MEASUREMENT_PATH__/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-  })(window,document,'script','dataLayer','GTM-KDFCRJM5');</script>
+  '__APP_MEASUREMENT_PATH__/?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','');</script>
   <!-- End Google Tag Manager -->
 
   <script id="diagnostics-ui-script" data-origin-script="diagnostics-ui" src="/assets/diagnostics.js" defer></script>

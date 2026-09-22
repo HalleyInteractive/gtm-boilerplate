@@ -58,11 +58,12 @@
 
   <div id="diagnostic-app"></div>
 
-  <!-- STEP 3: Direct <script async src="..."> tag at bottom of <body> instead of IIFE insertBefore -->
+  <!-- STEP 3: Direct <script async src="__APP_MEASUREMENT_PATH__/"> tag at bottom of <body> per GTG setup guide -->
   <script id="origin-gtm-start-push" data-origin-script="gtm-start-push">
     window.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
   </script>
-  <script id="origin-gtm-direct" data-origin-script="gtm-direct" async src="https://www.googletagmanager.com/gtm.js?id=GTM-KDFCRJM5"></script>
+  <!-- Google tag (gtag.js / direct GTG measurement path script) -->
+  <script async src="__APP_MEASUREMENT_PATH__/"></script>
 
   <script id="diagnostics-ui-script" data-origin-script="diagnostics-ui" src="/assets/diagnostics.js" defer></script>
 </body>
