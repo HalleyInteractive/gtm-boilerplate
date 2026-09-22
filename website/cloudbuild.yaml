@@ -12,36 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Consolidated Cloud Build pipeline for GTM Boilerplate
-# Builds Angular UI once and deploys to 4 configurations:
-#   1. gtm-boilerplate        (NGINX, standard/main)
-#   2. gtm-boilerplate-nginx  (NGINX)
-#   3. gtm-boilerplate-apache (Apache HTTP Server)
-#   4. gtm-boilerplate-gcp    (NGINX + GCP Load Balancer with Internet NEG)
-
+# Cloud Build pipeline for GTM & Google Tag Gateway Static Test Suite on nielsoverwijn.dev
 substitutions:
   _REGION: 'europe-west4'
   _AR_REPO_NAME: 'gtm-boilerplate-repo'
   _MEASUREMENT_PATH: '/d4t4'
   _GTG_TAG_ID: 'GTM-KDFCRJM5'
-  _DEFAULT_GEO_COUNTRY: 'NL'
-  _DOMAIN_GCP: 'gcp.nielsoverwijn.dev'
 
 steps:
-  # =========================================================================
-  # 1. Build Angular UI application once for all hosting platforms
-  # =========================================================================
-  - name: 'node:22-alpine'
-    dir: 'website/ui'
-    entrypoint: 'sh'
-    args:
-      - '-c'
-      - 'npm install && npm run build'
-    id: 'build-angular-ui'
-
-  # =========================================================================
-  # 2. Build Multi-Platform Docker Images (NGINX & Apache)
-  # =========================================================================
+  # 1. Build NGINX Docker image with static HTML test suite
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
@@ -50,27 +29,11 @@ steps:
       - '-t'
       - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/gtm-boilerplate-nginx:latest'
       - '-f'
-      - 'website/hosting/nginx/Dockerfile'
-      - 'website'
-    waitFor: ['build-angular-ui']
+      - 'hosting/nginx/Dockerfile'
+      - '.'
     id: 'build-nginx-image'
 
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'build'
-      - '-t'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/gtm-boilerplate-apache:${COMMIT_SHA}'
-      - '-t'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/gtm-boilerplate-apache:latest'
-      - '-f'
-      - 'website/hosting/apache/Dockerfile'
-      - 'website'
-    waitFor: ['build-angular-ui']
-    id: 'build-apache-image'
-
-  # =========================================================================
-  # 3. Push Container Images to Artifact Registry
-  # =========================================================================
+  # 2. Push Container Image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
@@ -79,18 +42,7 @@ steps:
     waitFor: ['build-nginx-image']
     id: 'push-nginx-image'
 
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'push'
-      - '--all-tags'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/gtm-boilerplate-apache'
-    waitFor: ['build-apache-image']
-    id: 'push-apache-image'
-
-  # =========================================================================
-  # 4. Deploy All 4 Services to Google Cloud Run
-  # =========================================================================
-  # 4a. Main Default Service (NGINX)
+  # 3. Deploy gtm-boilerplate to Google Cloud Run (serving nielsoverwijn.dev)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'gcloud'
     args:
@@ -111,115 +63,13 @@ steps:
       - '--port'
       - '8080'
       - '--update-env-vars'
-      - 'PLATFORM_NAME=,MEASUREMENT_PATH=${_MEASUREMENT_PATH},GTG_TAG_ID=${_GTG_TAG_ID},DEFAULT_GEO_COUNTRY=${_DEFAULT_GEO_COUNTRY}'
+      - 'MEASUREMENT_PATH=${_MEASUREMENT_PATH},GTG_TAG_ID=${_GTG_TAG_ID}'
     waitFor: ['push-nginx-image']
     id: 'deploy-main'
-
-  # 4b. NGINX Dedicated Service
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'gcloud'
-    args:
-      - 'run'
-      - 'deploy'
-      - 'gtm-boilerplate-nginx'
-      - '--image'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/gtm-boilerplate-nginx:${COMMIT_SHA}'
-      - '--region'
-      - '${_REGION}'
-      - '--platform'
-      - 'managed'
-      - '--allow-unauthenticated'
-      - '--min-instances'
-      - '0'
-      - '--max-instances'
-      - '10'
-      - '--port'
-      - '8080'
-      - '--update-env-vars'
-      - 'PLATFORM_NAME=NGINX,MEASUREMENT_PATH=${_MEASUREMENT_PATH},GTG_TAG_ID=${_GTG_TAG_ID},DEFAULT_GEO_COUNTRY=${_DEFAULT_GEO_COUNTRY}'
-    waitFor: ['push-nginx-image']
-    id: 'deploy-nginx'
-
-  # 4c. Apache HTTP Server Service
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'gcloud'
-    args:
-      - 'run'
-      - 'deploy'
-      - 'gtm-boilerplate-apache'
-      - '--image'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/gtm-boilerplate-apache:${COMMIT_SHA}'
-      - '--region'
-      - '${_REGION}'
-      - '--platform'
-      - 'managed'
-      - '--allow-unauthenticated'
-      - '--min-instances'
-      - '0'
-      - '--max-instances'
-      - '10'
-      - '--port'
-      - '8080'
-      - '--update-env-vars'
-      - 'PLATFORM_NAME=APACHE,MEASUREMENT_PATH=${_MEASUREMENT_PATH},GTG_TAG_ID=${_GTG_TAG_ID},DEFAULT_GEO_COUNTRY=${_DEFAULT_GEO_COUNTRY}'
-    waitFor: ['push-apache-image']
-    id: 'deploy-apache'
-
-  # 4d. GCP External Load Balancer Cloud Run Service (NGINX)
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'gcloud'
-    args:
-      - 'run'
-      - 'deploy'
-      - 'gtm-boilerplate-gcp'
-      - '--image'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/gtm-boilerplate-nginx:${COMMIT_SHA}'
-      - '--region'
-      - '${_REGION}'
-      - '--platform'
-      - 'managed'
-      - '--allow-unauthenticated'
-      - '--min-instances'
-      - '0'
-      - '--max-instances'
-      - '10'
-      - '--port'
-      - '8080'
-      - '--update-env-vars'
-      - 'PLATFORM_NAME=GCP,MEASUREMENT_PATH=${_MEASUREMENT_PATH},GTG_TAG_ID=${_GTG_TAG_ID},DEFAULT_GEO_COUNTRY=${_DEFAULT_GEO_COUNTRY}'
-    waitFor: ['push-nginx-image']
-    id: 'deploy-gcp'
-
-  # =========================================================================
-  # 5. GCP Load Balancer Setup (Graceful warning on policy/permission restrictions)
-  # =========================================================================
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        echo "🔧 Provisioning / Updating GCP External Application Load Balancer..."
-        if bash website/hosting/gcp/setup_load_balancer.sh; then
-          echo "✅ GCP Load Balancer configuration completed successfully."
-        else
-          echo "⚠️ WARNING: Load Balancer setup encountered restrictions (e.g. organization policies or quota)."
-          echo "   Cloud Run service 'gtm-boilerplate-gcp' remains deployed and functional."
-        fi
-    env:
-      - 'GOOGLE_CLOUD_PROJECT=${PROJECT_ID}'
-      - 'GCP_REGION=${_REGION}'
-      - 'CLOUD_RUN_SERVICE=gtm-boilerplate-gcp'
-      - 'DOMAIN=${_DOMAIN_GCP}'
-      - 'MEASUREMENT_PATH=${_MEASUREMENT_PATH}'
-      - 'GTG_TAG_ID=${_GTG_TAG_ID}'
-    waitFor: ['deploy-gcp']
-    id: 'setup-load-balancer'
 
 images:
   - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/gtm-boilerplate-nginx:${COMMIT_SHA}'
   - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/gtm-boilerplate-nginx:latest'
-  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/gtm-boilerplate-apache:${COMMIT_SHA}'
-  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/gtm-boilerplate-apache:latest'
 
 options:
   logging: CLOUD_LOGGING_ONLY

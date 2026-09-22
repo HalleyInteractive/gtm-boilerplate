@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Test 2: Standard GTM at Bottom of &lt;body&gt; | nielsoverwijn.dev</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/assets/styles.css">
+
+  <!-- STEP 1: Pre-GTM DataLayer Initialization in <head> (NO GTM IN <head>!) -->
+  <script id="dl-head-init" data-origin-script="dl-head-init">
+    window.__PAGE_SCENARIO__ = 'standard-body-end';
+    window.__CONFIGURED_MP__ = '__APP_MEASUREMENT_PATH__';
+    window.dataLayer = window.dataLayer || [];
+    (function () {
+      var existing = window.dataLayer.slice();
+      var gtmStarted = existing.some(function (x) { return x && (x.event === 'gtm.js' || x['gtm.start']); });
+      var scriptsInHead = Array.prototype.slice.call(document.head.querySelectorAll('script')).map(function (s) {
+        return { id: s.id || '(no-id)', src: s.getAttribute('src') || '(inline)' };
+      });
+      window.__HEAD_SNAPSHOT__ = {
+        gtmAlreadyStartedBeforeHeadPush: gtmStarted,
+        scriptsInHeadAtHeadInitTime: scriptsInHead
+      };
+      window.dataLayer.push({
+        event: 'pre_gtm_head_init',
+        head_pre_load_token: 'HEAD_READY_BEFORE_GTM',
+        test_scenario: 'standard-body-end',
+        head_pushed_at_ms: Math.round(performance.now() * 100) / 100
+      });
+    })();
+  </script>
+</head>
+<body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KDFCRJM5"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+
+  <!-- STEP 2: Mid-<body> DataLayer Push BEFORE Bottom-of-Body GTM -->
+  <script id="dl-body-init" data-origin-script="dl-body-init">
+    (function () {
+      var existing = window.dataLayer.slice();
+      var gtmStarted = existing.some(function (x) { return x && (x.event === 'gtm.js' || x['gtm.start']); });
+      var allScripts = Array.prototype.slice.call(document.querySelectorAll('script')).map(function (s) {
+        return {
+          parent: s.parentNode && s.parentNode.tagName ? s.parentNode.tagName.toLowerCase() : 'unknown',
+          id: s.id || '(no-id)',
+          src: s.getAttribute('src') || '(inline)'
+        };
+      });
+      window.__BODY_SNAPSHOT__ = {
+        gtmAlreadyStartedBeforeBodyPush: gtmStarted,
+        scriptsInDomAtBodyInitTime: allScripts
+      };
+      window.dataLayer.push({
+        event: 'pre_gtm_body_init',
+        body_pre_load_token: 'BODY_READY_BEFORE_GTM',
+        test_scenario: 'standard-body-end',
+        body_pushed_at_ms: Math.round(performance.now() * 100) / 100
+      });
+    })();
+  </script>
+
+  <div id="diagnostic-app"></div>
+
+  <!-- STEP 3: Official Standard Google Tag Manager Snippet placed at the VERY BOTTOM of <body> -->
+  <!-- Google Tag Manager -->
+  <script id="origin-gtm-snippet" data-origin-script="gtm-snippet">(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-KDFCRJM5');</script>
+  <!-- End Google Tag Manager -->
+
+  <script id="diagnostics-ui-script" data-origin-script="diagnostics-ui" src="/assets/diagnostics.js" defer></script>
+</body>
+</html>

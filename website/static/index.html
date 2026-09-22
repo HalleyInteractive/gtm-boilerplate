@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>GTG Test Lab — Hub &amp; Baseline (&lt;head&gt; Standard) | nielsoverwijn.dev</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/assets/styles.css">
+
+  <!-- STEP 1: Pre-GTM DataLayer Initialization in <head> -->
+  <script id="dl-head-init" data-origin-script="dl-head-init">
+    window.__PAGE_SCENARIO__ = 'index';
+    window.__CONFIGURED_MP__ = '__APP_MEASUREMENT_PATH__';
+    window.dataLayer = window.dataLayer || [];
+    (function () {
+      var existing = window.dataLayer.slice();
+      var gtmStarted = existing.some(function (x) { return x && (x.event === 'gtm.js' || x['gtm.start']); });
+      var scriptsInHead = Array.prototype.slice.call(document.head.querySelectorAll('script')).map(function (s) {
+        return { id: s.id || '(no-id)', src: s.getAttribute('src') || '(inline)' };
+      });
+      window.__HEAD_SNAPSHOT__ = {
+        gtmAlreadyStartedBeforeHeadPush: gtmStarted,
+        scriptsInHeadAtHeadInitTime: scriptsInHead
+      };
+      window.dataLayer.push({
+        event: 'pre_gtm_head_init',
+        head_pre_load_token: 'HEAD_READY_BEFORE_GTM',
+        test_scenario: 'index',
+        head_pushed_at_ms: Math.round(performance.now() * 100) / 100
+      });
+    })();
+  </script>
+
+  <!-- STEP 2: Standard Google Tag Manager Snippet in <head> AFTER dataLayer push -->
+  <!-- Google Tag Manager -->
+  <script id="origin-gtm-snippet" data-origin-script="gtm-snippet">(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-KDFCRJM5');</script>
+  <!-- End Google Tag Manager -->
+</head>
+<body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KDFCRJM5"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+
+  <!-- STEP 3: Mid-<body> DataLayer Push & Synchronous Parser Checkpoint -->
+  <script id="dl-body-init" data-origin-script="dl-body-init">
+    (function () {
+      var existing = window.dataLayer.slice();
+      var gtmStarted = existing.some(function (x) { return x && (x.event === 'gtm.js' || x['gtm.start']); });
+      var allScripts = Array.prototype.slice.call(document.querySelectorAll('script')).map(function (s) {
+        return {
+          parent: s.parentNode && s.parentNode.tagName ? s.parentNode.tagName.toLowerCase() : 'unknown',
+          id: s.id || '(no-id)',
+          src: s.getAttribute('src') || '(inline)'
+        };
+      });
+      window.__BODY_SNAPSHOT__ = {
+        gtmAlreadyStartedBeforeBodyPush: gtmStarted,
+        scriptsInDomAtBodyInitTime: allScripts
+      };
+      window.dataLayer.push({
+        event: 'pre_gtm_body_init',
+        body_pre_load_token: 'BODY_PUSHED_IN_BODY',
+        test_scenario: 'index',
+        body_pushed_at_ms: Math.round(performance.now() * 100) / 100
+      });
+    })();
+  </script>
+
+  <div id="diagnostic-app"></div>
+  <script id="diagnostics-ui-script" data-origin-script="diagnostics-ui" src="/assets/diagnostics.js" defer></script>
+</body>
+</html>
