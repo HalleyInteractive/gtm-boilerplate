@@ -5,7 +5,7 @@
     { id: 'standard-body-end', path: '/standard-body-end', label: '2. Standard <body>', desc: 'Standard GTM snippet at the bottom of <body> after dataLayer pushes', expectBodyBeforeGtm: true },
     { id: 'retagged-head', path: '/retagged-head', label: '3. Retagged <head>', desc: 'Retagged 1st-party snippet (/d4t4/?id=) in <head> after dataLayer push', expectBodyBeforeGtm: false },
     { id: 'retagged-first-party', path: '/retagged-first-party', label: '4. Retagged <body>', desc: 'Retagged 1st-party snippet (/d4t4/?id=) at bottom of <body> after dataLayer pushes', expectBodyBeforeGtm: true },
-    { id: 'dynamic-broken', path: '/dynamic-broken', label: '5. Dynamic JS (Broken)', desc: 'JS-variable URL construction at bottom of <body> (Cloudflare does not recognize it)', expectBodyBeforeGtm: true },
+    { id: 'dynamic-broken', path: '/dynamic-broken', label: '5. Dynamic JS (Broken)', desc: 'JS-variable URL construction at bottom of <body>', expectBodyBeforeGtm: true },
     { id: 'no-tag', path: '/no-tag', label: '6. No Tag', desc: 'No GTM snippet in HTML at all (tests if Cloudflare still injects GTM)', expectBodyBeforeGtm: true },
     { id: 'direct-script-tag', path: '/direct-script-tag', label: '7. Direct <script>', desc: 'Direct <script async src="/d4t4/"> at bottom of <body>', expectBodyBeforeGtm: true }
   ];
@@ -25,71 +25,63 @@
     var page = PAGES.find(function (p) { return p.id === scenarioId; }) || PAGES[0];
 
     var dl = window.dataLayer || [];
+    var cfInjectIdx = -1;
     var headIdx = -1;
     var bodyIdx = -1;
-    var gtmIdx = -1;
+    var gtmStartIdx = -1;
 
     for (var i = 0; i < dl.length; i++) {
       var item = dl[i];
       if (!item) continue;
+      var str = JSON.stringify(item);
+      if (str.indexOf('developer_id.dY2E1Nz') !== -1 && cfInjectIdx === -1) cfInjectIdx = i;
       if (item.event === 'pre_gtm_head_init' && headIdx === -1) headIdx = i;
       if (item.event === 'pre_gtm_body_init' && bodyIdx === -1) bodyIdx = i;
-      if ((item.event === 'gtm.js' || item['gtm.start'] || item.event === 'gtm.init') && gtmIdx === -1) gtmIdx = i;
+      if ((item.event === 'gtm.js' || item['gtm.start']) && gtmStartIdx === -1) gtmStartIdx = i;
     }
 
-    var headSnap = window.__HEAD_SNAPSHOT__ || {};
-    var bodySnap = window.__BODY_SNAPSHOT__ || {};
+    var cfInjectedBeforeHead = cfInjectIdx !== -1 && (headIdx === -1 || cfInjectIdx < headIdx);
+    var gtmStartAfterDataLayer = gtmStartIdx !== -1 && gtmStartIdx > headIdx && (!page.expectBodyBeforeGtm || gtmStartIdx > bodyIdx);
 
-    // Check if GTM loaded before the expected dataLayer push
-    var gtmRanBeforeHead = headSnap.gtmAlreadyStartedBeforeHeadPush || (gtmIdx !== -1 && gtmIdx < headIdx);
-    var gtmRanBeforeBody = page.expectBodyBeforeGtm && (bodySnap.gtmAlreadyStartedBeforeBodyPush || (gtmIdx !== -1 && gtmIdx < bodyIdx));
+    var statusClass = cfInjectedBeforeHead ? 'fail' : (gtmStartAfterDataLayer ? 'pass' : 'warn');
+    var headline = '';
+    var reason = '';
 
-    var statusClass = 'pass';
-    var headline = '✅ PASS: dataLayer loaded BEFORE GTM';
-    var reason = 'GTM executed at the expected position in the HTML after the dataLayer was populated.';
-
-    if (gtmIdx === -1) {
-      statusClass = 'warn';
-      headline = '⚪ NO GTM LOADED';
-      reason = 'No GTM script ran on this page.';
-    } else if (gtmRanBeforeHead) {
-      statusClass = 'fail';
-      headline = '❌ FAIL: Cloudflare injected GTM at top of <head> BEFORE dataLayer!';
-      reason = 'GTM initialized at dataLayer[' + gtmIdx + '], before the <head> dataLayer push at dataLayer[' + headIdx + '].';
-    } else if (gtmRanBeforeBody) {
-      statusClass = 'fail';
-      headline = '❌ FAIL: GTM ran in <head> BEFORE the <body> dataLayer push!';
-      reason = 'Origin placed GTM at the bottom of <body>, but GTM initialized at dataLayer[' + gtmIdx + '] before <body> push at dataLayer[' + bodyIdx + '].';
+    if (cfInjectedBeforeHead) {
+      headline = '⚠️ Cloudflare Injected /d4t4/ at Top of <head> (dataLayer[' + cfInjectIdx + ']) BEFORE Page dataLayer (dataLayer[' + headIdx + '])!';
+      if (gtmStartIdx === -1) {
+        reason = 'Even with "Setup tag" OFF and no GTM snippet on the page, Cloudflare injected j.src="/d4t4/" at the very top of <head>, loading the GTM container before your dataLayer scripts.';
+      } else if (gtmStartAfterDataLayer) {
+        reason = 'Cloudflare injected j.src="/d4t4/" at byte 0 of <head> (dataLayer[' + cfInjectIdx + ']) BEFORE your dataLayer init (dataLayer[' + headIdx + ']), while the gtm.js start event fired at your HTML snippet position (dataLayer[' + gtmStartIdx + ']).';
+      } else {
+        reason = 'Both Cloudflare injection (dataLayer[' + cfInjectIdx + ']) and gtm.js start (dataLayer[' + gtmStartIdx + ']) ran before your expected dataLayer pushes.';
+      }
+    } else if (gtmStartAfterDataLayer) {
+      headline = '✅ PASS: dataLayer loaded BEFORE GTM';
+      reason = 'No script was injected before <head> dataLayer, and GTM started at dataLayer[' + gtmStartIdx + '].';
+    } else {
+      headline = '⚪ No GTM Loaded';
+      reason = 'Neither Cloudflare nor the page loaded GTM.';
     }
 
-    // Find loaded GTM script URL(s)
-    var scripts = [];
-    if (window.performance && window.performance.getEntriesByType) {
-      scripts = (window.performance.getEntriesByType('resource') || [])
-        .filter(function (r) {
-          return r.name &&
-            r.name.indexOf('diagnostics.js') === -1 &&
-            r.name.indexOf('styles.css') === -1 &&
-            r.name.indexOf('/raw-origin/') === -1 &&
-            (r.initiatorType === 'script' || r.name.indexOf('gtm.js') !== -1 || r.name.indexOf('?id=') !== -1);
-        })
-        .map(function (r) { return r.name; });
-    }
-
-    var cb = (window.__GTM_CALLBACK_DATA__ || [])[0];
-    var gtmCallbackLine = cb
-      ? '<li><strong>Read by GTM Tag on Load:</strong> head=<code>' + esc(cb.headTokenReadByGtm || 'undefined') + '</code>, body=<code>' + esc(cb.bodyTokenReadByGtm || 'undefined') + '</code></li>'
-      : '';
+    var scripts = Array.prototype.slice.call(document.querySelectorAll('script[src]')).map(function (s) {
+      return s.getAttribute('src');
+    }).filter(function (src) {
+      return src.indexOf('diagnostics.js') === -1;
+    });
 
     var navHtml = '<nav>' + PAGES.map(function (p) {
       return '<a href="' + p.path + '" class="' + (p.id === page.id ? 'active' : '') + '">' + esc(p.label) + '</a>';
     }).join('') + '</nav>';
 
     var dlItemsHtml = dl.map(function (entry, idx) {
-      var isGtm = entry && (entry.event === 'gtm.js' || entry['gtm.start'] || entry.event === 'gtm.init');
+      var s = JSON.stringify(entry);
+      var isCf = s.indexOf('developer_id.dY2E1Nz') !== -1;
+      var isGtm = entry && (entry.event === 'gtm.js' || entry['gtm.start']);
       var isPre = entry && (entry.event === 'pre_gtm_head_init' || entry.event === 'pre_gtm_body_init');
-      var cls = isGtm ? 'is-gtm' : (isPre ? 'is-pre' : '');
-      return '<li class="' + cls + '">[' + idx + '] ' + esc(JSON.stringify(entry)) + '</li>';
+      var cls = isCf ? 'is-gtm' : (isGtm ? 'is-gtm' : (isPre ? 'is-pre' : ''));
+      var tag = isCf ? '  <-- INJECTED BY CLOUDFLARE AT TOP OF <head>!' : (isGtm ? '  <-- ON-PAGE GTM SNIPPET (gtm.js)' : (isPre ? '  <-- PAGE DATALAYER PUSH' : ''));
+      return '<li class="' + cls + '">[' + idx + '] ' + esc(s) + esc(tag) + '</li>';
     }).join('');
 
     root.innerHTML =
@@ -101,9 +93,8 @@
           '<div class="status-headline">' + esc(headline) + '</div>' +
           '<ul class="meta-list">' +
             '<li>' + esc(reason) + '</li>' +
-            '<li><strong>Order in dataLayer:</strong> <code>&lt;head&gt; push = [' + headIdx + ']</code> &rarr; <code>&lt;body&gt; push = [' + bodyIdx + ']</code> &rarr; <code>GTM start = [' + (gtmIdx === -1 ? 'none' : gtmIdx) + ']</code></li>' +
-            '<li><strong>Script URL loaded:</strong> <code>' + (scripts.length ? esc(scripts.join(', ')) : 'none') + '</code></li>' +
-            gtmCallbackLine +
+            '<li><strong>Execution Order:</strong> <code>Cloudflare &lt;head&gt; inject = [' + (cfInjectIdx === -1 ? 'none' : cfInjectIdx) + ']</code> &rarr; <code>&lt;head&gt; push = [' + headIdx + ']</code> &rarr; <code>&lt;body&gt; push = [' + bodyIdx + ']</code> &rarr; <code>gtm.js event = [' + (gtmStartIdx === -1 ? 'none' : gtmStartIdx) + ']</code></li>' +
+            '<li><strong>Script tags in DOM:</strong> <code>' + (scripts.length ? esc(scripts.join(' , ')) : 'none') + '</code></li>' +
           '</ul>' +
         '</div>' +
         '<div class="box">' +
@@ -113,7 +104,6 @@
       '</div>';
   }
 
-  window.addEventListener('gtm-verification-fired', render);
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
       render();
