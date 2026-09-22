@@ -2,69 +2,28 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Test 7: Direct &lt;script async src&gt; at Bottom of &lt;body&gt; | nielsoverwijn.dev</title>
+  <title>7. Direct &lt;script async src&gt;</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="/assets/styles.css">
 
-  <!-- STEP 1: Pre-GTM DataLayer Initialization in <head> -->
-  <script id="dl-head-init" data-origin-script="dl-head-init">
+  <script>
     window.__PAGE_SCENARIO__ = 'direct-script-tag';
-    window.__CONFIGURED_MP__ = '__APP_MEASUREMENT_PATH__';
     window.dataLayer = window.dataLayer || [];
-    (function () {
-      var existing = window.dataLayer.slice();
-      var gtmStarted = existing.some(function (x) { return x && (x.event === 'gtm.js' || x['gtm.start']); });
-      var scriptsInHead = Array.prototype.slice.call(document.head.querySelectorAll('script')).map(function (s) {
-        return { id: s.id || '(no-id)', src: s.getAttribute('src') || '(inline)' };
-      });
-      window.__HEAD_SNAPSHOT__ = {
-        gtmAlreadyStartedBeforeHeadPush: gtmStarted,
-        scriptsInHeadAtHeadInitTime: scriptsInHead
-      };
-      window.dataLayer.push({
-        event: 'pre_gtm_head_init',
-        head_pre_load_token: 'HEAD_READY_BEFORE_GTM',
-        test_scenario: 'direct-script-tag',
-        head_pushed_at_ms: Math.round(performance.now() * 100) / 100
-      });
-    })();
+    window.dataLayer.push({ event: 'pre_gtm_head_init', head_pre_load_token: 'HEAD_READY' });
   </script>
 </head>
 <body>
-  <!-- STEP 2: Mid-<body> DataLayer Push -->
-  <script id="dl-body-init" data-origin-script="dl-body-init">
-    (function () {
-      var existing = window.dataLayer.slice();
-      var gtmStarted = existing.some(function (x) { return x && (x.event === 'gtm.js' || x['gtm.start']); });
-      var allScripts = Array.prototype.slice.call(document.querySelectorAll('script')).map(function (s) {
-        return {
-          parent: s.parentNode && s.parentNode.tagName ? s.parentNode.tagName.toLowerCase() : 'unknown',
-          id: s.id || '(no-id)',
-          src: s.getAttribute('src') || '(inline)'
-        };
-      });
-      window.__BODY_SNAPSHOT__ = {
-        gtmAlreadyStartedBeforeBodyPush: gtmStarted,
-        scriptsInDomAtBodyInitTime: allScripts
-      };
-      window.dataLayer.push({
-        event: 'pre_gtm_body_init',
-        body_pre_load_token: 'BODY_READY_BEFORE_GTM',
-        test_scenario: 'direct-script-tag',
-        body_pushed_at_ms: Math.round(performance.now() * 100) / 100
-      });
-    })();
+  <script>
+    window.dataLayer.push({ event: 'pre_gtm_body_init', body_pre_load_token: 'BODY_READY' });
   </script>
 
   <div id="diagnostic-app"></div>
 
-  <!-- STEP 3: Direct <script async src="__APP_MEASUREMENT_PATH__/"> tag at bottom of <body> per GTG setup guide -->
-  <script id="origin-gtm-start-push" data-origin-script="gtm-start-push">
+  <script>
     window.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
   </script>
-  <!-- Google tag (gtag.js / direct GTG measurement path script) -->
   <script async src="__APP_MEASUREMENT_PATH__/"></script>
 
-  <script id="diagnostics-ui-script" data-origin-script="diagnostics-ui" src="/assets/diagnostics.js" defer></script>
+  <script src="/assets/diagnostics.js" defer></script>
 </body>
 </html>

@@ -2,74 +2,31 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Test 5: Improperly Constructed / Dynamic JS URL | nielsoverwijn.dev</title>
+  <title>5. Dynamic JS URL (Broken Construction)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="/assets/styles.css">
 
-  <!-- STEP 1: Pre-GTM DataLayer Initialization in <head> -->
-  <script id="dl-head-init" data-origin-script="dl-head-init">
+  <script>
     window.__PAGE_SCENARIO__ = 'dynamic-broken';
-    window.__CONFIGURED_MP__ = '__APP_MEASUREMENT_PATH__';
-    window.__APP_ENV__ = {
-      TAG_BASE: 'https://www.' + 'googletagmanager.com'
-    };
+    window.__APP_ENV__ = { TAG_BASE: 'https://www.' + 'googletagmanager.com' };
     window.dataLayer = window.dataLayer || [];
-    (function () {
-      var existing = window.dataLayer.slice();
-      var gtmStarted = existing.some(function (x) { return x && (x.event === 'gtm.js' || x['gtm.start']); });
-      var scriptsInHead = Array.prototype.slice.call(document.head.querySelectorAll('script')).map(function (s) {
-        return { id: s.id || '(no-id)', src: s.getAttribute('src') || '(inline)' };
-      });
-      window.__HEAD_SNAPSHOT__ = {
-        gtmAlreadyStartedBeforeHeadPush: gtmStarted,
-        scriptsInHeadAtHeadInitTime: scriptsInHead
-      };
-      window.dataLayer.push({
-        event: 'pre_gtm_head_init',
-        head_pre_load_token: 'HEAD_READY_BEFORE_GTM',
-        test_scenario: 'dynamic-broken',
-        head_pushed_at_ms: Math.round(performance.now() * 100) / 100
-      });
-    })();
+    window.dataLayer.push({ event: 'pre_gtm_head_init', head_pre_load_token: 'HEAD_READY' });
   </script>
 </head>
 <body>
-  <!-- STEP 2: Mid-<body> DataLayer Push -->
-  <script id="dl-body-init" data-origin-script="dl-body-init">
-    (function () {
-      var existing = window.dataLayer.slice();
-      var gtmStarted = existing.some(function (x) { return x && (x.event === 'gtm.js' || x['gtm.start']); });
-      var allScripts = Array.prototype.slice.call(document.querySelectorAll('script')).map(function (s) {
-        return {
-          parent: s.parentNode && s.parentNode.tagName ? s.parentNode.tagName.toLowerCase() : 'unknown',
-          id: s.id || '(no-id)',
-          src: s.getAttribute('src') || '(inline)'
-        };
-      });
-      window.__BODY_SNAPSHOT__ = {
-        gtmAlreadyStartedBeforeBodyPush: gtmStarted,
-        scriptsInDomAtBodyInitTime: allScripts
-      };
-      window.dataLayer.push({
-        event: 'pre_gtm_body_init',
-        body_pre_load_token: 'BODY_READY_BEFORE_GTM',
-        test_scenario: 'dynamic-broken',
-        body_pushed_at_ms: Math.round(performance.now() * 100) / 100
-      });
-    })();
+  <script>
+    window.dataLayer.push({ event: 'pre_gtm_body_init', body_pre_load_token: 'BODY_READY' });
   </script>
 
   <div id="diagnostic-app"></div>
 
-  <!-- STEP 3: Improperly Constructed GTM Snippet (Dynamic JS Variable Concatenation like old index.html) -->
-  <!-- Because j.src is constructed from window.__APP_ENV__.TAG_BASE instead of a literal URL string,
-       Cloudflare HTMLRewriter does not recognize this as a standard GTM snippet! -->
-  <script id="origin-gtm-snippet" data-origin-script="gtm-snippet">(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  <!-- Non-standard GTM snippet using JS variable concatenation -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
   new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
   j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   w.__APP_ENV__.TAG_BASE+'/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
   })(window,document,'script','dataLayer','GTM-KDFCRJM5');</script>
 
-  <script id="diagnostics-ui-script" data-origin-script="diagnostics-ui" src="/assets/diagnostics.js" defer></script>
+  <script src="/assets/diagnostics.js" defer></script>
 </body>
 </html>
