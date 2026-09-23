@@ -1,45 +1,3 @@
-# =========================================================================
-# Geolocation header mappings for Google Tag Gateway (GTG)
-# Priority: Incoming X-Forwarded-Country > Cloudflare > CloudFront > GFE > Default fallback
-# =========================================================================
-
-map $http_x_forwarded_country $gtg_country_from_fwd {
-    default $http_x_forwarded_country;
-    ""      $http_cf_ipcountry; # Cloudflare fallback
-}
-
-map $gtg_country_from_fwd $gtg_country_from_cf {
-    default $gtg_country_from_fwd;
-    ""      $http_cloudfront_viewer_country; # AWS CloudFront fallback
-}
-
-map $gtg_country_from_cf $gtg_country_from_cf_viewer {
-    default $gtg_country_from_cf;
-    ""      $http_x_appengine_country; # Google App Engine fallback
-}
-
-map $gtg_country_from_cf_viewer $gtg_country {
-    default $gtg_country_from_cf_viewer;
-    ""      "${DEFAULT_GEO_COUNTRY}"; # Fallback default for direct Cloud Run / testing
-}
-
-map $http_x_forwarded_region $gtg_region_from_fwd {
-    default $http_x_forwarded_region;
-    ""      $http_x_appengine_region;
-}
-
-map $gtg_region_from_fwd $gtg_region {
-    default $gtg_region_from_fwd;
-    ""      $http_cloudfront_viewer_country_region;
-}
-
-map "$gtg_country:$gtg_region" $gtg_country_region {
-    default "$gtg_country-$gtg_region";
-    "~^:"   "";
-    "~:$"   "$gtg_country";
-    ":"     "";
-}
-
 server {
     listen ${PORT};
     server_name localhost;
@@ -90,20 +48,12 @@ server {
         proxy_buffers 4 256k;
         proxy_busy_buffers_size 256k;
 
-        # 4. Forward standard visitor headers
+        # 4. Forward visitor IP & standard headers
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header User-Agent $http_user_agent;
         proxy_set_header Referer $http_referer;
-
-        # 5. Omit visitor geolocation headers (testing IP-only forwarding via X-Real-IP / X-Forwarded-For)
-        proxy_set_header X-Forwarded-Country "";
-        proxy_set_header X-Forwarded-Region "";
-        proxy_set_header X-Forwarded-CountryRegion "";
-        # proxy_set_header X-Forwarded-Country $gtg_country;
-        # proxy_set_header X-Forwarded-Region $gtg_region;
-        # proxy_set_header X-Forwarded-CountryRegion $gtg_country_region;
     }
 
     # Static assets with caching
