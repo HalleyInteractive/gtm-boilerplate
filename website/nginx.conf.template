@@ -97,10 +97,13 @@ server {
         proxy_set_header User-Agent $http_user_agent;
         proxy_set_header Referer $http_referer;
 
-        # 5. Forward visitor geolocation data (GFE, CDN, or default fallback)
-        proxy_set_header X-Forwarded-Country $gtg_country;
-        proxy_set_header X-Forwarded-Region $gtg_region;
-        proxy_set_header X-Forwarded-CountryRegion $gtg_country_region;
+        # 5. Omit visitor geolocation headers (testing IP-only forwarding via X-Real-IP / X-Forwarded-For)
+        proxy_set_header X-Forwarded-Country "";
+        proxy_set_header X-Forwarded-Region "";
+        proxy_set_header X-Forwarded-CountryRegion "";
+        # proxy_set_header X-Forwarded-Country $gtg_country;
+        # proxy_set_header X-Forwarded-Region $gtg_region;
+        # proxy_set_header X-Forwarded-CountryRegion $gtg_country_region;
     }
 
     # Static assets with caching
