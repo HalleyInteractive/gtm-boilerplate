@@ -12,45 +12,45 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Cloud Build pipeline for GTM & Google Tag Gateway Static Test Suite on nielsoverwijn.dev
+# Cloud Build configuration to build and deploy GTM Boilerplate to Google Cloud Run (from website/ directory)
+
 substitutions:
   _REGION: 'europe-west4'
+  _SERVICE_NAME: 'gtm-boilerplate'
   _AR_REPO_NAME: 'gtm-boilerplate-repo'
-  _MEASUREMENT_PATH: '/d4t4'
-  _GTG_TAG_ID: 'GTM-KDFCRJM5'
 
 steps:
-  # 1. Build NGINX Docker image with static HTML test suite
+  # 1. Build the multi-stage Docker container image
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
       - '-t'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/gtm-boilerplate-nginx:${COMMIT_SHA}'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/${_SERVICE_NAME}:${COMMIT_SHA}'
       - '-t'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/gtm-boilerplate-nginx:latest'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/${_SERVICE_NAME}:latest'
       - '-f'
-      - 'hosting/nginx/Dockerfile'
+      - 'Dockerfile'
       - '.'
-    id: 'build-nginx-image'
+    id: 'build-image'
 
-  # 2. Push Container Image to Artifact Registry
+  # 2. Push image to Google Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
       - '--all-tags'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/gtm-boilerplate-nginx'
-    waitFor: ['build-nginx-image']
-    id: 'push-nginx-image'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/${_SERVICE_NAME}'
+    waitFor: ['build-image']
+    id: 'push-image'
 
-  # 3. Deploy gtm-boilerplate to Google Cloud Run (serving nielsoverwijn.dev)
+  # 3. Deploy container image to Google Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'gcloud'
     args:
       - 'run'
       - 'deploy'
-      - 'gtm-boilerplate'
+      - '${_SERVICE_NAME}'
       - '--image'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/gtm-boilerplate-nginx:${COMMIT_SHA}'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/${_SERVICE_NAME}:${COMMIT_SHA}'
       - '--region'
       - '${_REGION}'
       - '--platform'
@@ -62,14 +62,12 @@ steps:
       - '10'
       - '--port'
       - '8080'
-      - '--update-env-vars'
-      - 'MEASUREMENT_PATH=${_MEASUREMENT_PATH},GTG_TAG_ID=${_GTG_TAG_ID}'
-    waitFor: ['push-nginx-image']
-    id: 'deploy-main'
+    waitFor: ['push-image']
+    id: 'deploy-cloud-run'
 
 images:
-  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/gtm-boilerplate-nginx:${COMMIT_SHA}'
-  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/gtm-boilerplate-nginx:latest'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/${_SERVICE_NAME}:${COMMIT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/${_SERVICE_NAME}:latest'
 
 options:
   logging: CLOUD_LOGGING_ONLY

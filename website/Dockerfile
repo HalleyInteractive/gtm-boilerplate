@@ -12,23 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Stage 1: Build Angular Frontend
+FROM node:22-alpine AS builder
+
+WORKDIR /app/ui
+
+# Install dependencies inside the container
+COPY ui/package*.json ./
+RUN npm install
+
+# Copy UI source code and build production distribution
+COPY ui/ ./
+RUN npm run build
+
+# Stage 2: Production Web Server with NGINX Alpine
 FROM nginx:alpine
 
 # Copy dynamic NGINX configuration template ($PORT substitution supported natively)
-COPY hosting/nginx/nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 
-# Copy dynamic runtime environment injection script
-COPY hosting/nginx/40-inject-env.sh /docker-entrypoint.d/40-inject-env.sh
-RUN chmod +x /docker-entrypoint.d/40-inject-env.sh
+# Copy compiled Angular distribution files
+COPY --from=builder /app/ui/dist/gtm-boilerplate /usr/share/nginx/html
 
-# Copy static HTML test suite pages and assets
-COPY static/ /usr/share/nginx/html/
-
+# Default Cloud Run PORT
 ENV PORT=8080
-ENV MEASUREMENT_PATH=/d4t4
-ENV GTG_TAG_ID=GTM-KDFCRJM5
-ENV NGINX_ENVSUBST_FILTER="PORT|MEASUREMENT_PATH|GTG_TAG_ID"
-
 EXPOSE 8080
 
 CMD ["nginx", "-g", "daemon off;"]

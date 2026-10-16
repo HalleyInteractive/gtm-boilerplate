@@ -22,30 +22,26 @@ export GOOGLE_CLOUD_PROJECT=<walkthrough-project-id/>
 
 To enable required Google Cloud APIs (Cloud Run, Cloud Build, Artifact Registry) and configure IAM permissions:
 
-Click the **Cloud Shell arrow button** on the top right of the code box below to automatically run the setup script:
-
 ```sh
 bash setup_cloud_run.sh
 ```
 
 ## Prepare Tracking & Environment Configuration
 
-Before deploying, you can review and configure your tracking parameters in [environment.prod.ts](./ui/src/environments/environment.prod.ts).
+Before deploying, you can review and configure your currency and locale parameters in [environment.prod.ts](./ui/src/environments/environment.prod.ts):
 
-Variable             | Description
--------------------- | -----------
-currency             | Currency code used for products and conversion events (default: `GBP`)
-localCode            | Locale code used for currency formatting (default: `en-GB`)
+Variable  | Description
+--------- | -----------
+currency  | Currency code used for products and conversion events (default: `GBP`)
+localCode | Locale code used for currency formatting (default: `en-GB`)
 
-Your Google Tag Manager Web Container ID (`GTM-XXXXXX` / `GTM-KDFCRJM5`) is not part of this file. It is hardcoded in the Google Tag Manager snippets in [index.html](./ui/src/index.html).
-
-The deployed site loads `gtm.js` first-party through the Google Tag Gateway proxy (`MEASUREMENT_PATH`, default `/d4t4`). Append `?tagsrc=google` to any URL to load it from `googletagmanager.com` instead, and `?tagsrc=gateway` to switch back. The choice sticks for the rest of the browser tab session.
+Google Tag Manager is initialized directly in [index.html](./ui/src/index.html) after the Consent Mode v2 default/update scripts. When using Cloudflare Google Tag Gateway (with "Set up tag" toggled OFF), Cloudflare injects the first-party container script at the top of `<head>`, so `index.html` only pushes `{'gtm.start': new Date().getTime(), event: 'gtm.js'}` to `window.dataLayer`.
 
 ## Continuous Deployment via GitHub (Automated on Push)
 
 1. Open [Cloud Build Triggers Console](https://console.cloud.google.com/cloud-build/triggers).
 2. Connect your GitHub repository.
-3. Create a trigger that executes `website/cloudbuild.yaml` on pushes to `^main$`.
+3. Create a trigger (`GTM-Boilerplate-CICD`) that executes `cloudbuild.yaml` on pushes to `^main$`.
 
 ## Manual Deployment
 
