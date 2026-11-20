@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Rocket Loader + GTG Race Test (Fixed)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script data-cfasync="false">
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('consent', 'default', {
+      'ad_storage': 'granted',
+      'ad_user_data': 'granted',
+      'ad_personalization': 'granted',
+      'analytics_storage': 'granted'
+    });
+  </script>
+</head>
+<body style="font-family: system-ui, sans-serif; background: #121212; color: #fff; padding: 2rem;">
+  <h1>Rocket Loader + GTG Race Test (Fixed: <code>data-cfasync="false"</code>)</h1>
+  <p>Both the <code>attributes</code> push and <code>gtm.start</code> below include <code>data-cfasync="false"</code> (without <code>src="/javascript.js"</code>), so Cloudflare Rocket Loader leaves them untouched and they execute deterministically before <code>gtm.init</code> / GA4 <code>page_view</code>.</p>
+  <pre id="out" style="background: #1e1e1e; padding: 1rem; border-radius: 6px; overflow: auto;"></pre>
+
+  <!-- Custom dataLayer attributes (excluded from Rocket Loader) -->
+  <script data-cfasync="false">
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+      attributes: {
+        region: 'Scotland',
+        development: 'Rocket Loader Test',
+        pageType: 'test',
+        id: '1111'
+      }
+    });
+  </script>
+
+  <!-- GTM gtm.start trigger (excluded from Rocket Loader) -->
+  <script data-cfasync="false">
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+      'gtm.start': new Date().getTime(),
+      event: 'gtm.js'
+    });
+  </script>
+
+  <script data-cfasync="false">
+    setTimeout(function () {
+      var el = document.getElementById('out');
+      if (el) el.textContent = JSON.stringify(window.dataLayer, null, 2);
+    }, 1500);
+  </script>
+</body>
+</html>

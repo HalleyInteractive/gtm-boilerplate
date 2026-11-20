@@ -31,8 +31,9 @@ FROM nginx:alpine
 # Copy dynamic NGINX configuration template ($PORT substitution supported natively)
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 
-# Copy compiled Angular distribution files
+# Copy compiled Angular distribution files and static diagnostic pages
 COPY --from=builder /app/ui/dist/gtm-boilerplate /usr/share/nginx/html
+COPY static/ /usr/share/nginx/html/
 
 # Default Cloud Run PORT
 ENV PORT=8080

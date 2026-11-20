@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Rocket Loader + GTG Race Test (Broken)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Consent Mode kept un-deferred (like a CMP with data-cfasync="false") so rocket-loader.min.js is placed at </body> with defer -->
+  <script data-cfasync="false">
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('consent', 'default', {
+      'ad_storage': 'granted',
+      'ad_user_data': 'granted',
+      'ad_personalization': 'granted',
+      'analytics_storage': 'granted'
+    });
+  </script>
+</head>
+<body style="font-family: system-ui, sans-serif; background: #121212; color: #fff; padding: 2rem;">
+  <h1>Rocket Loader + GTG Race Test (Broken: no <code>data-cfasync="false"</code>)</h1>
+  <p>Both the <code>attributes</code> push and <code>gtm.start</code> below lack <code>data-cfasync="false"</code>, so Cloudflare Rocket Loader rewrites them and defers execution via <code>rocket-loader.min.js defer</code>, racing against Cloudflare GTG's byte-0 <code>/d4t4/</code> script.</p>
+  <pre id="out" style="background: #1e1e1e; padding: 1rem; border-radius: 6px; overflow: auto;"></pre>
+
+  <!-- Custom dataLayer attributes (rewritten & deferred by Cloudflare Rocket Loader) -->
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+      attributes: {
+        region: 'Scotland',
+        development: 'Rocket Loader Test',
+        pageType: 'test',
+        id: '1111'
+      }
+    });
+  </script>
+
+  <!-- GTM gtm.start trigger (rewritten & deferred by Cloudflare Rocket Loader) -->
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+      'gtm.start': new Date().getTime(),
+      event: 'gtm.js'
+    });
+  </script>
+
+  <script data-cfasync="false">
+    setTimeout(function () {
+      var el = document.getElementById('out');
+      if (el) el.textContent = JSON.stringify(window.dataLayer, null, 2);
+    }, 1500);
+  </script>
+</body>
+</html>
